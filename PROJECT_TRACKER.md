@@ -39,11 +39,15 @@
 
 ### Agent Rules
 
+> ⚠️ **Git is MANDATORY. Read `AGENT_INSTRUCTIONS.md` for full details.**
+
 1. **Check this file BEFORE starting any work**
-2. **Update your row status when starting/completing**
-3. **Only modify files in YOUR assigned scope**
-4. **Commit to YOUR assigned branch only**
-5. **Report completion here with summary**
+2. **VERIFY you're on YOUR feature branch** (never `main` or `develop`)
+3. **Update your row status when starting/completing**
+4. **Only modify files in YOUR assigned scope**
+5. **Commit frequently** (don't accumulate huge uncommitted changes)
+6. **Push your branch when done** — unpushed work = incomplete task
+7. **Report completion with Git verification** (see handoff protocol)
 
 ---
 
@@ -299,7 +303,11 @@ curl http://localhost:3000/api/health
 **Status:** In Progress
 **Summary:** Initialized Next.js project (Phase 0.1) and started Phase 0.3 (Core Components).
 **Issues:** None.
-**Next:** Implement core UI components and landing page.
+### 2026-02-06 22:30 — Antigravity — Branch: feature/phase0-components
+**Status:** In Progress
+**Summary:** Implemented complete Frontend Landing Page (Header, Footer, NewsCard, Hero, Stats) matching style reference. Build verified.
+**Issues:** None.
+**Next:** Implement ToolCard and DigestCard to complete Phase 0.3.
 ```
 
 ---
