@@ -4,7 +4,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-02-08
 
 ---
 
@@ -14,7 +14,7 @@
 |-------|------|--------|------|
 | 0.1 | Infrastructure Setup | Ready | [Jump](#phase-01-infrastructure-setup) |
 | 0.2 | Database & Supabase | Ready | [Jump](#phase-02-database--supabase-setup) |
-| 0.3 | Core UI Components | Ready | [Jump](#phase-03-core-ui-components) |
+| 0.3 | Core UI Components | ✅ Complete | [Jump](#phase-03-core-ui-components) |
 | 0.4 | Utility Functions | Ready | [Jump](#phase-04-utility-functions) |
 | 1.1 | News Fetching Pipeline | Pending Phase 0 | [Jump](#phase-11-news-fetching-pipeline) |
 | 1.2 | News Display Pages | Pending Phase 0 | [Jump](#phase-12-news-display-pages) |
@@ -729,30 +729,34 @@ git commit -m "feat: add Supabase setup with tables and TypeScript client"
 
 ## Phase 0.3: Core UI Components
 
-**Branch:** `feature/phase0-components`  
-**Estimated Time:** 2-3 hours  
-**Prerequisites:** Next.js project initialized  
-**Current Status:** 🔄 Partial — Landing page done, missing reusable components
+**Branch:** `feature/phase0-components`
+**Estimated Time:** 2-3 hours
+**Prerequisites:** Next.js project initialized
+**Current Status:** ✅ Complete
 
-### What's Already Done ✅
+### Completed Components
 
-The following have been implemented on the landing page:
-- `Header.tsx` — Navigation with logo
-- `Footer.tsx` — Footer links
-- `NewsCard.tsx` — Basic news card (needs props refinement)
-- `globals.css` — Design system with Tailwind theme
+| Component | File | Notes |
+|-----------|------|-------|
+| Header | `src/components/layout/Header.tsx` | With mobile menu, ARIA labels |
+| Footer | `src/components/layout/Footer.tsx` | Dynamic copyright year |
+| NewsCard | `src/components/cards/NewsCard.tsx` | Props aligned with DB `articles` table |
+| ToolCard | `src/components/cards/ToolCard.tsx` | Pricing badges, SafeImage fallback |
+| DigestCard | `src/components/cards/DigestCard.tsx` | Embedded AudioPlayer |
+| SafeImage | `src/components/ui/SafeImage.tsx` | next/image with fallback |
+| AudioPlayer | `src/components/ui/AudioPlayer.tsx` | HTML5 audio, progress, seek, mute |
+| SearchInput | `src/components/ui/SearchInput.tsx` | Debounced with clear button |
+| FilterBar | `src/components/ui/FilterBar.tsx` | Pill-style tabs with active state |
+| Badge | `src/components/ui/Badge.tsx` | 5 variants: default/primary/success/warning/danger |
+| ThemeToggle | `src/components/ui/ThemeToggle.tsx` | Light/dark switch, hydration-safe |
+| ThemeProvider | `src/components/providers/ThemeProvider.tsx` | next-themes wrapper |
 
-### What's Still Needed ⏳
+### Key Decisions Made
 
-| Component | Purpose | Priority |
-|-----------|---------|----------|
-| `SafeImage` | Image with fallback on error | High |
-| `AudioPlayer` | HTML5 audio with controls | High |
-| `ToolCard` | Card for /tools directory | Medium |
-| `DigestCard` | Card for daily digest archives | Medium |
-| `SearchInput` | Debounced search field | Medium |
-| `FilterBar` | Category/source filters | Low |
-| `Badge` | Tag/category badges | Low |
+1. **CSS Variable Pattern:** All components use `bg-[var(--surface)]` which auto-switches with `.dark` class. NOT `bg-surface-light dark:bg-surface-dark`.
+2. **NewsCard Props:** Aligned with `articles` DB table — takes `url`, `publishedAt`, `thumbnailUrl`, `summaryStatus` instead of `icon`/`iconBgInfo`/`timeAgo`.
+3. **Test Framework:** Vitest + React Testing Library (not Jest).
+4. **`utils.ts` Ownership:** `src/lib/utils.ts` with `cn()` lives on this branch. Task 0.4 must NOT recreate it.
 
 ---
 
@@ -1373,43 +1377,41 @@ git push -u origin feature/phase0-components
 
 ## Phase 0.4: Utility Functions
 
-**Branch:** `feature/phase0-utilities`  
-**Estimated Time:** 2-3 hours  
+**Branch:** `feature/phase0-utilities`
+**Estimated Time:** 2-3 hours
 **Prerequisites:** Next.js project initialized
 
 ### Overview
+
+**⚠️ IMPORTANT:** `src/lib/utils.ts` with `cn()` already exists on `feature/phase0-components`. Do NOT recreate it. `clsx` and `tailwind-merge` are already installed. Skip Task 1 below.
 
 Utility functions provide shared functionality across the codebase:
 
 | Utility | Purpose | File |
 |---------|---------|------|
-| `cn` | Tailwind class merging | `src/lib/utils.ts` |
+| `cn` | Tailwind class merging | `src/lib/utils.ts` (**already exists**) |
 | `sanitize` | HTML sanitization (XSS protection) | `src/lib/sanitize.ts` |
 | `llm` | LLM client with fallback | `src/lib/llm.ts` |
+| `auth` | CRON job auth (timing-safe) | `src/lib/auth.ts` |
 | Health API | System health endpoint | `src/app/api/health/route.ts` |
 
 ---
 
-### Task 1: Create Class Merge Utility
+### Task 1: Class Merge Utility — ~~SKIP~~ (already done)
 
-**Files:**
-- Create: `src/lib/utils.ts`
+**Status:** ✅ Already implemented on `feature/phase0-components`
+**File:** `src/lib/utils.ts` contains `cn()` function
+**Packages:** `clsx` and `tailwind-merge` already in `package.json`
 
-**Step 1: Install dependencies**
-```bash
-npm install clsx tailwind-merge
-```
+~~**Files:**~~
+~~- Create: `src/lib/utils.ts`~~
 
-**Step 2: Create utility**
+The code below is already in place — do not recreate:
 ```typescript
-// src/lib/utils.ts
+// src/lib/utils.ts — ALREADY EXISTS
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
-/**
- * Merge Tailwind CSS classes with proper precedence
- * Handles conflicts like 'p-4' vs 'p-2' 
- */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -1595,8 +1597,9 @@ async function callGemini(
   const { GoogleGenerativeAI } = await import('@google/generative-ai')
   
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+  const model = genAI.getGenerativeModel({
+    model: modelName,
     generationConfig: {
       maxOutputTokens: options.maxTokens,
       temperature: options.temperature,
@@ -1609,7 +1612,7 @@ async function callGemini(
 
   return {
     text: response.text(),
-    model: 'gemini-1.5-flash',
+    model: modelName,
   }
 }
 
@@ -1771,19 +1774,21 @@ git commit -m "feat(api): add health check endpoint"
 **Files:**
 - Create: `src/lib/auth.ts`
 
-**Step 1: Create auth helper**
+**Step 1: Create auth helper (uses timing-safe comparison)**
 ```typescript
 // src/lib/auth.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 
 /**
  * Verify CRON_SECRET for job endpoints
+ * Uses crypto.timingSafeEqual to prevent timing attacks.
  * Use in API routes: if (!verifyCronAuth(request)) return unauthorized()
  */
 export function verifyCronAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('Authorization')
   const expectedSecret = process.env.CRON_SECRET
-  
+
   if (!expectedSecret) {
     console.error('[Auth] CRON_SECRET not configured')
     return false
@@ -1794,7 +1799,12 @@ export function verifyCronAuth(request: NextRequest): boolean {
   }
 
   const token = authHeader.slice(7)
-  return token === expectedSecret
+
+  // Use timing-safe comparison to prevent timing attacks
+  const tokenBuf = Buffer.from(token)
+  const secretBuf = Buffer.from(expectedSecret)
+  if (tokenBuf.length !== secretBuf.length) return false
+  return timingSafeEqual(tokenBuf, secretBuf)
 }
 
 /**
