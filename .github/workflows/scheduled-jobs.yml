@@ -1,0 +1,57 @@
+name: Scheduled Jobs
+
+on:
+  schedule:
+    # Fetch news every 6 hours (UTC: 00:00, 06:00, 12:00, 18:00)
+    - cron: "0 0,6,12,18 * * *"
+    # Summarise pending articles every 30 minutes
+    - cron: "*/30 * * * *"
+    # Generate daily digest at 00:00 UTC (08:00 AWST)
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Job to run"
+        required: true
+        type: choice
+        options:
+          - fetch-news
+          - summarise
+          - daily-digest
+
+jobs:
+  fetch-news:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'fetch-news' ||
+      github.event_name == 'schedule' && github.event.schedule == '0 0,6,12,18 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger fetch-news
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/fetch-news"
+
+  summarise:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'summarise' ||
+      github.event_name == 'schedule' && github.event.schedule == '*/30 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger summarise
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/summarise"
+
+  daily-digest:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'daily-digest' ||
+      github.event_name == 'schedule' && github.event.schedule == '0 0 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily-digest
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/daily-digest"
