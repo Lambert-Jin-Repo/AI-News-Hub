@@ -30,7 +30,8 @@ export async function GET(): Promise<NextResponse<HealthCheck>> {
   // Database check — only if supabase client exists
   let dbCheck: HealthCheck['checks']['database'] | undefined;
   try {
-    // Dynamic import so this doesn't fail when supabase.ts doesn't exist yet
+    // Dynamic import — module won't exist until Phase 0.2 merges
+    // @ts-expect-error Module may not exist yet
     const { supabase } = await import('@/lib/supabase');
     const { error } = await supabase.from('articles').select('id').limit(1);
     dbCheck = error
