@@ -18,6 +18,12 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+const todayFormatted = new Date().toLocaleDateString("en-AU", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -37,7 +43,7 @@ export default function Home() {
                 </span>
               </div>
               <span className="text-[#4c9a93] dark:text-[#6bb5ae] text-sm font-medium">
-                October 24, 2023
+                {todayFormatted}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#0d1b1a] dark:text-white leading-[1.15] mb-6">

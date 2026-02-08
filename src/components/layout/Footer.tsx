@@ -25,7 +25,7 @@ export function Footer() {
                     </Link>
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                    © 2023 AI News Hub. All rights reserved.
+                    © {new Date().getFullYear()} AI News Hub. All rights reserved.
                 </div>
             </div>
         </footer>
