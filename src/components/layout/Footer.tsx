@@ -13,7 +13,7 @@ export function Footer() {
                         AI News Hub
                     </span>
                 </div>
-                <div className="flex gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
+                <div className="flex gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
                     <Link href="#" className="hover:text-primary transition-colors">
                         Privacy Policy
                     </Link>
@@ -24,7 +24,7 @@ export function Footer() {
                         Contact
                     </Link>
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                     © 2023 AI News Hub. All rights reserved.
                 </div>
             </div>

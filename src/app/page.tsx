@@ -20,14 +20,14 @@ import {
 
 export default function Home() {
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+    <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-grow w-full max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Hero Section Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Hero Left: Daily Briefing */}
-          <div className="lg:col-span-8 bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft p-8 relative overflow-hidden group">
+          <div className="lg:col-span-8 bg-[var(--surface)] rounded-[16px] shadow-soft p-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
@@ -36,27 +36,27 @@ export default function Home() {
                   Live Updates
                 </span>
               </div>
-              <span className="text-[#4c9a93] text-sm font-medium">
+              <span className="text-[#4c9a93] dark:text-[#6bb5ae] text-sm font-medium">
                 October 24, 2023
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#0d1b1a] dark:text-white leading-[1.15] mb-6">
               Your Daily <span className="text-primary">AI Briefing</span>
             </h1>
-            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 space-y-4">
+            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-200 space-y-4">
               <p className="text-lg leading-relaxed">
                 Today&apos;s top story involves a significant leap in multimodal
                 models. Major labs have released benchmarks showing a 40%
                 efficiency gain in reasoning tasks, signaling a shift away from
                 pure parameter scaling towards architectural optimization.
               </p>
-              <p className="text-base leading-relaxed opacity-90">
+              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
                 In regulatory news, the EU AI Act continues to spark debate over
                 open-source liabilities, while Silicon Valley sees a surge in
                 &apos;vertical AI&apos; startups focusing on legal and medical
                 applications.
               </p>
-              <p className="text-base leading-relaxed opacity-90">
+              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
                 Meanwhile, hardware constraints are easing as new dedicated
                 inference chips hit the market, potentially lowering the cost of
                 running LLMs locally by half within the next quarter.
@@ -77,21 +77,21 @@ export default function Home() {
           {/* Hero Right: Audio & Featured */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             {/* Audio Player Card */}
-            <div className="bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft p-6 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
+            <div className="bg-[var(--surface)] rounded-[16px] shadow-soft p-6 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
               <div>
                 <div className="flex items-start justify-between mb-2">
                   <div className="bg-primary/10 p-2 rounded-full text-primary">
                     <Headphones className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-gray-400">
+                  <span className="text-xs font-bold text-gray-400 dark:text-gray-300">
                     12:45 MIN
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#0d1b1a] dark:text-white mb-1">
                   Today&apos;s Audio Briefing
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-300">
                   Listen to the key highlights on the go.
                 </p>
               </div>
@@ -150,7 +150,7 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-white mb-2">
                   Browse AI Tools
                 </h3>
-                <p className="text-gray-400 text-sm mb-4">
+                <p className="text-gray-300 text-sm mb-4">
                   Discover the latest productivity apps and models.
                 </p>
                 <div className="flex -space-x-3">
@@ -168,7 +168,7 @@ export default function Home() {
         </div>
 
         {/* Stats Row */}
-        <div className="bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-800">
+        <div className="bg-[var(--surface)] rounded-[16px] shadow-soft py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-800">
           <div className="flex items-center gap-4 px-6 w-full md:w-auto justify-center md:justify-start">
             <div className="p-3 bg-accent/10 rounded-full text-accent">
               <FileText className="w-6 h-6" />
@@ -177,7 +177,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 150+
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Articles Scanned
               </p>
             </div>
@@ -190,7 +190,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 45+
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 New AI Tools
               </p>
             </div>
@@ -203,7 +203,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 7
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Daily Briefings
               </p>
             </div>

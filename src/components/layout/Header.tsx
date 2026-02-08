@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Terminal, Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function Header() {
     return (
-        <nav className="sticky top-0 z-50 w-full bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-[#e7f3f2] dark:border-[#2A3E3C]">
+        <nav className="sticky top-0 z-50 w-full bg-[var(--surface)]/90 backdrop-blur-md border-b border-[#e7f3f2] dark:border-[#2A3E3C]">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-3 group">
@@ -25,28 +26,31 @@ export function Header() {
                     </Link>
                     <Link
                         href="#"
-                        className="text-[#556966] dark:text-gray-400 text-sm font-medium hover:text-primary transition-colors"
+                        className="text-[#556966] dark:text-gray-300 text-sm font-medium hover:text-primary transition-colors"
                     >
                         News
                     </Link>
                     <Link
                         href="#"
-                        className="text-[#556966] dark:text-gray-400 text-sm font-medium hover:text-primary transition-colors"
+                        className="text-[#556966] dark:text-gray-300 text-sm font-medium hover:text-primary transition-colors"
                     >
                         Tools
                     </Link>
                     <Link
                         href="#"
-                        className="text-[#556966] dark:text-gray-400 text-sm font-medium hover:text-primary transition-colors"
+                        className="text-[#556966] dark:text-gray-300 text-sm font-medium hover:text-primary transition-colors"
                     >
                         About
                     </Link>
                 </div>
 
-                {/* CTA */}
-                <button className="hidden md:flex items-center justify-center px-6 h-10 border border-primary text-primary hover:bg-primary hover:text-white rounded-full text-sm font-bold transition-all duration-300 cursor-pointer">
-                    Subscribe
-                </button>
+                {/* Theme Toggle & CTA */}
+                <div className="hidden md:flex items-center gap-4">
+                    <ThemeToggle />
+                    <button className="flex items-center justify-center px-6 h-10 border border-primary text-primary hover:bg-primary hover:text-white rounded-full text-sm font-bold transition-all duration-300 cursor-pointer">
+                        Subscribe
+                    </button>
+                </div>
 
                 {/* Mobile Menu Icon */}
                 <button className="md:hidden text-[#0d1b1a] dark:text-white">

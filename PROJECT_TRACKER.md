@@ -303,11 +303,21 @@ curl http://localhost:3000/api/health
 **Status:** In Progress
 **Summary:** Initialized Next.js project (Phase 0.1) and started Phase 0.3 (Core Components).
 **Issues:** None.
-### 2026-02-06 22:30 — Antigravity — Branch: feature/phase0-components
+### 2026-02-08 20:50 — Antigravity — Branch: feature/phase0-components
 **Status:** In Progress
-**Summary:** Implemented complete Frontend Landing Page (Header, Footer, NewsCard, Hero, Stats) matching style reference. Build verified.
+**Summary:** Implemented Light/Dark Mode Toggle using `next-themes`. Added `ThemeProvider` and `ThemeToggle` component in Header. Verified robust switching between Light (Cream) and Dark (Teal) themes.
 **Issues:** None.
 **Next:** Implement ToolCard and DigestCard to complete Phase 0.3.
+### 2026-02-08 21:30 — Antigravity — Branch: feature/phase0-components
+**Status:** Handoff Ready
+**Summary:** 
+- Fixed default theme to "light" (was system-dependent)
+- Fixed dark mode card backgrounds using `--surface` CSS variable
+- Improved text/icon accessibility for WCAG AA compliance
+- Created comprehensive handoff document for next AI agent
+**Completed:** Landing page, Header, Footer, NewsCard, ThemeToggle, ThemeProvider
+**Remaining:** ToolCard, DigestCard, SafeImage, AudioPlayer, FilterBar, SearchInput, Badge
+**Next:** Another AI to continue with remaining Phase 0.3 components.
 ```
 
 ---
