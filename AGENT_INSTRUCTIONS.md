@@ -1,6 +1,65 @@
 # AI News Hub — Agent Instructions
 
 > **Read this file BEFORE starting any work.** This contains the rules all AI agents must follow.
+>
+> ⚠️ **CRITICAL:** Git branching is MANDATORY. Never work on `main` or `develop` directly.
+
+---
+
+## 🚨 MANDATORY GIT REQUIREMENTS
+
+> **These are NON-NEGOTIABLE. Failure to follow = invalid work.**
+
+### Before ANY Code Changes
+
+```bash
+# Step 1: Verify you're on the correct branch
+git branch --show-current
+# MUST show: feature/phase0-[your-task]
+# If it shows 'main' or 'develop', STOP and create your branch first!
+
+# Step 2: If branch doesn't exist, create it
+git checkout develop
+git pull origin develop 2>/dev/null || true
+git checkout -b feature/phase0-[your-task]
+```
+
+### After EVERY Significant Change
+
+```bash
+# Commit your work (don't accumulate huge uncommitted changes)
+git add -A
+git commit -m "type(scope): description"
+
+# Example:
+git commit -m "feat(components): add NewsCard with hover effects"
+```
+
+### Before Marking Task Complete
+
+```bash
+# Step 1: Verify all changes are committed
+git status
+# MUST show: "nothing to commit, working tree clean"
+
+# Step 2: Push your branch
+git push -u origin feature/phase0-[your-task]
+
+# Step 3: Verify push succeeded
+git log origin/feature/phase0-[your-task] --oneline -3
+```
+
+### Git Violations That Invalidate Work
+
+| Violation | Why It's Bad | Consequence |
+|-----------|--------------|-------------|
+| Working on `main` | Blocks other agents | Work must be moved to branch |
+| Working on `develop` | Causes merge conflicts | Work must be cherry-picked |
+| No commits | Progress can be lost | Task marked incomplete |
+| Not pushing | Others can't see progress | Task marked incomplete |
+| Huge single commit | Hard to review/revert | Must be split |
+
+---
 
 ## Quick Start for Agents
 
@@ -8,19 +67,21 @@
 # 1. Check your assignment
 cat PROJECT_TRACKER.md  # Find your assigned branch and task
 
-# 2. Read your implementation plan
-cat IMPLEMENTATION_PLANS.md  # Find your section
-
-# 3. Create/checkout your branch
+# 2. MANDATORY: Verify/create your branch FIRST
+git branch --show-current
+# If not on your feature branch:
 git checkout develop
-git pull origin develop
 git checkout -b feature/phase0-[your-task]
 
+# 3. Read your implementation plan
+cat IMPLEMENTATION_PLANS.md  # Find your section
+
 # 4. Do your work following the plan EXACTLY
+#    Commit frequently: git commit -m "type(scope): msg"
 
 # 5. Update PROJECT_TRACKER.md with your progress
 
-# 6. Push your branch
+# 6. MANDATORY: Push your branch when done
 git push -u origin feature/phase0-[your-task]
 ```
 
@@ -187,13 +248,38 @@ test(utils): add sanitization unit tests
 
 ## Handoff Protocol
 
-When your task is complete, provide this summary:
+When your task is complete, you MUST complete this checklist:
+
+### Step 1: Git Verification (MANDATORY)
+
+Run these commands and paste the output:
+
+```bash
+# 1. Verify correct branch
+git branch --show-current
+# Expected: feature/phase0-[your-task]
+
+# 2. Verify all committed
+git status
+# Expected: "nothing to commit, working tree clean"
+
+# 3. Verify pushed to remote
+git log origin/$(git branch --show-current) --oneline -3
+# Expected: Your commits visible
+
+# 4. Count your commits
+git rev-list --count develop..HEAD
+```
+
+### Step 2: Provide Completion Summary
 
 ```markdown
 ## Task Complete: [Task Name]
 
-**Branch:** `feature/phase0-[name]`
-**Commits:** [number] commits
+### Git Verification ✅
+- **Branch:** `feature/phase0-[name]`
+- **Commits:** [number] commits
+- **Pushed:** ✅ Yes (paste first line of git log output)
 
 ### What was done:
 - [List of completed items]
@@ -203,13 +289,13 @@ When your task is complete, provide this summary:
 - `path/to/file2.ts` — [description]
 
 ### Tests:
-- [X] All tests passing
-- [X] No lint errors
-- [X] Builds successfully
+- [ ] All tests passing
+- [ ] No lint errors
+- [ ] Builds successfully (`npm run build` output)
 
 ### Verification output:
 ```
-[paste test output]
+[paste npm run build or test output]
 ```
 
 ### Notes for merge:
@@ -218,6 +304,9 @@ When your task is complete, provide this summary:
 
 ### Ready for merge: ✅ Yes / ❌ No (reason)
 ```
+
+> ⚠️ **If Git verification fails, your task is NOT complete.** Fix Git issues first.
+
 
 ---
 

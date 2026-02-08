@@ -1,13 +1,14 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-primary: #0d968b;
   --color-primary-dark: #0a7d73;
   --color-accent: #C2774A;
-  
+
   --color-background-light: #F5F5F0;
   --color-background-dark: #102220;
-  
+
   --color-surface-light: #FFFFFF;
   --color-surface-dark: #1A2E2C;
 
@@ -24,10 +25,31 @@
   --shadow-soft-hover: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
+@layer base {
+  :root {
+    --background: #F5F5F0;
+    --foreground: #0d1b1a;
+    --surface: #FFFFFF;
+  }
+
+  .dark {
+    --background: #102220;
+    --foreground: #f3f4f6;
+    --surface: #1A2E2C;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-manrope), sans-serif;
+  }
+}
+
+
 @utility container {
   margin-inline: auto;
-  padding-inline: 1.5rem; 
-  max-width: 80rem; 
+  padding-inline: 1.5rem;
+  max-width: 80rem;
 }
 
 /* Custom Utilities mimicking the HTML inline styles */
@@ -52,19 +74,39 @@
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.5); opacity: 0; }
-  50% { opacity: 0.5; }
-  100% { transform: scale(1.5); opacity: 0; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 .waveform-bar {
   width: 4px;
-  background-color: #0d968b; /* primary */
+  background-color: #0d968b;
+  /* primary */
   border-radius: 2px;
   animation: waveform 1.2s ease-in-out infinite;
 }
 
 @keyframes waveform {
-  0%, 100% { height: 12px; opacity: 0.5; }
-  50% { height: 32px; opacity: 1; }
+
+  0%,
+  100% {
+    height: 12px;
+    opacity: 0.5;
+  }
+
+  50% {
+    height: 32px;
+    opacity: 1;
+  }
 }

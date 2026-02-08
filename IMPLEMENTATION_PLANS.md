@@ -4,7 +4,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-02-08
 
 ---
 
@@ -14,7 +14,7 @@
 |-------|------|--------|------|
 | 0.1 | Infrastructure Setup | Ready | [Jump](#phase-01-infrastructure-setup) |
 | 0.2 | Database & Supabase | Ready | [Jump](#phase-02-database--supabase-setup) |
-| 0.3 | Core UI Components | Ready | [Jump](#phase-03-core-ui-components) |
+| 0.3 | Core UI Components | ✅ Complete | [Jump](#phase-03-core-ui-components) |
 | 0.4 | Utility Functions | Ready | [Jump](#phase-04-utility-functions) |
 | 1.1 | News Fetching Pipeline | Pending Phase 0 | [Jump](#phase-11-news-fetching-pipeline) |
 | 1.2 | News Display Pages | Pending Phase 0 | [Jump](#phase-12-news-display-pages) |
@@ -729,25 +729,1162 @@ git commit -m "feat: add Supabase setup with tables and TypeScript client"
 
 ## Phase 0.3: Core UI Components
 
-**Branch:** `feature/phase0-components`  
-**Estimated Time:** 2-3 hours  
+**Branch:** `feature/phase0-components`
+**Estimated Time:** 2-3 hours
 **Prerequisites:** Next.js project initialized
+**Current Status:** ✅ Complete
 
-*(Detailed implementation steps continue...)*
+### Completed Components
+
+| Component | File | Notes |
+|-----------|------|-------|
+| Header | `src/components/layout/Header.tsx` | With mobile menu, ARIA labels |
+| Footer | `src/components/layout/Footer.tsx` | Dynamic copyright year |
+| NewsCard | `src/components/cards/NewsCard.tsx` | Props aligned with DB `articles` table |
+| ToolCard | `src/components/cards/ToolCard.tsx` | Pricing badges, SafeImage fallback |
+| DigestCard | `src/components/cards/DigestCard.tsx` | Embedded AudioPlayer |
+| SafeImage | `src/components/ui/SafeImage.tsx` | next/image with fallback |
+| AudioPlayer | `src/components/ui/AudioPlayer.tsx` | HTML5 audio, progress, seek, mute |
+| SearchInput | `src/components/ui/SearchInput.tsx` | Debounced with clear button |
+| FilterBar | `src/components/ui/FilterBar.tsx` | Pill-style tabs with active state |
+| Badge | `src/components/ui/Badge.tsx` | 5 variants: default/primary/success/warning/danger |
+| ThemeToggle | `src/components/ui/ThemeToggle.tsx` | Light/dark switch, hydration-safe |
+| ThemeProvider | `src/components/providers/ThemeProvider.tsx` | next-themes wrapper |
+
+### Key Decisions Made
+
+1. **CSS Variable Pattern:** All components use `bg-[var(--surface)]` which auto-switches with `.dark` class. NOT `bg-surface-light dark:bg-surface-dark`.
+2. **NewsCard Props:** Aligned with `articles` DB table — takes `url`, `publishedAt`, `thumbnailUrl`, `summaryStatus` instead of `icon`/`iconBgInfo`/`timeAgo`.
+3. **Test Framework:** Vitest + React Testing Library (not Jest).
+4. **`utils.ts` Ownership:** `src/lib/utils.ts` with `cn()` lives on this branch. Task 0.4 must NOT recreate it.
 
 ---
 
+### Task 1: Fix Next.js Hydration Warning
+
+**Priority:** 🔴 High (blocks testing)
+
+**Step 1: Check browser console for error**
+```bash
+# Open http://localhost:3000, inspect the "1 Issue" badge
+# Look for hydration mismatch errors
+```
+
+**Step 2: Common fixes**
+- Ensure no `Date.now()` or `Math.random()` in render
+- Wrap client-only code in `useEffect` or use `'use client'` directive
+- Check for browser-only APIs used during SSR
+
+**Step 3: Verify fix**
+```bash
+npm run build
+# Should complete with no errors
+```
+
+---
+
+### Task 2: Create SafeImage Component
+
+**Files:**
+- Create: `src/components/ui/SafeImage.tsx`
+
+**Step 1: Create component**
+```typescript
+// src/components/ui/SafeImage.tsx
+'use client'
+
+import Image, { ImageProps } from 'next/image'
+import { useState } from 'react'
+import { cn } from '@/lib/utils'
+
+interface SafeImageProps extends Omit<ImageProps, 'onError'> {
+  fallbackSrc?: string
+  fallbackClassName?: string
+}
+
+export function SafeImage({
+  src,
+  alt,
+  fallbackSrc = '/placeholders/news-placeholder.svg',
+  fallbackClassName,
+  className,
+  ...props
+}: SafeImageProps) {
+  const [error, setError] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  if (error) {
+    return (
+      <div className={cn(
+        "flex items-center justify-center bg-gray-100 dark:bg-gray-800",
+        fallbackClassName || className
+      )}>
+        <Image
+          src={fallbackSrc}
+          alt={alt}
+          className="opacity-50"
+          {...props}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative">
+      {!loaded && (
+        <div className={cn(
+          "absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse",
+          className
+        )} />
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        className={cn(className, !loaded && 'opacity-0')}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        {...props}
+      />
+    </div>
+  )
+}
+```
+
+**Step 2: Create placeholder SVG**
+```bash
+mkdir -p public/placeholders
+```
+
+Create `public/placeholders/news-placeholder.svg`:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#F3F4F6"/>
+  <path d="M160 120h80v60h-80z" fill="#D1D5DB"/>
+  <circle cx="180" cy="140" r="12" fill="#9CA3AF"/>
+  <path d="M200 160l30 20H170l30-20z" fill="#9CA3AF"/>
+</svg>
+```
+
+**Step 3: Commit**
+```bash
+git add src/components/ui/SafeImage.tsx public/placeholders/
+git commit -m "feat(components): add SafeImage with fallback handling"
+```
+
+---
+
+### Task 3: Create AudioPlayer Component
+
+**Files:**
+- Create: `src/components/ui/AudioPlayer.tsx`
+
+**Step 1: Create component**
+```typescript
+// src/components/ui/AudioPlayer.tsx
+'use client'
+
+import { useRef, useState, useEffect } from 'react'
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface AudioPlayerProps {
+  src: string
+  title?: string
+  duration?: string
+  className?: string
+}
+
+export function AudioPlayer({ src, title, duration, className }: AudioPlayerProps) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [currentTime, setCurrentTime] = useState('0:00')
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const updateProgress = () => {
+      const percent = (audio.currentTime / audio.duration) * 100
+      setProgress(isNaN(percent) ? 0 : percent)
+      
+      const mins = Math.floor(audio.currentTime / 60)
+      const secs = Math.floor(audio.currentTime % 60)
+      setCurrentTime(`${mins}:${secs.toString().padStart(2, '0')}`)
+    }
+
+    const handleEnded = () => setIsPlaying(false)
+
+    audio.addEventListener('timeupdate', updateProgress)
+    audio.addEventListener('ended', handleEnded)
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress)
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [])
+
+  const togglePlay = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isPlaying) {
+      audio.pause()
+    } else {
+      audio.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const toggleMute = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.muted = !isMuted
+    setIsMuted(!isMuted)
+  }
+
+  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const percent = (e.clientX - rect.left) / rect.width
+    audio.currentTime = percent * audio.duration
+  }
+
+  return (
+    <div className={cn("flex items-center gap-4 p-4 bg-surface-light dark:bg-surface-dark rounded-xl", className)}>
+      <audio ref={audioRef} src={src} preload="metadata" />
+      
+      {/* Play/Pause Button */}
+      <button
+        onClick={togglePlay}
+        className="size-12 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-colors"
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+      >
+        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+      </button>
+
+      {/* Info & Progress */}
+      <div className="flex-1">
+        {title && (
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{title}</p>
+        )}
+        
+        {/* Progress Bar */}
+        <div 
+          className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer"
+          onClick={seek}
+        >
+          <div 
+            className="h-full bg-primary rounded-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        {/* Time */}
+        <div className="flex justify-between mt-1 text-xs text-gray-500">
+          <span>{currentTime}</span>
+          <span>{duration || '--:--'}</span>
+        </div>
+      </div>
+
+      {/* Mute Button */}
+      <button
+        onClick={toggleMute}
+        className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        aria-label={isMuted ? 'Unmute' : 'Mute'}
+      >
+        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+      </button>
+    </div>
+  )
+}
+```
+
+**Step 2: Commit**
+```bash
+git add src/components/ui/AudioPlayer.tsx
+git commit -m "feat(components): add AudioPlayer with progress and controls"
+```
+
+---
+
+### Task 4: Create ToolCard Component
+
+**Files:**
+- Create: `src/components/cards/ToolCard.tsx`
+
+**Step 1: Create component**
+```typescript
+// src/components/cards/ToolCard.tsx
+import { ExternalLink } from 'lucide-react'
+import { SafeImage } from '@/components/ui/SafeImage'
+import { cn } from '@/lib/utils'
+
+interface ToolCardProps {
+  name: string
+  description: string | null
+  url: string
+  category: string
+  pricingModel: 'free' | 'freemium' | 'paid'
+  tags: string[]
+  logoUrl: string | null
+  className?: string
+}
+
+const pricingBadgeColors = {
+  free: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  freemium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  paid: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+}
+
+export function ToolCard({
+  name,
+  description,
+  url,
+  category,
+  pricingModel,
+  tags,
+  logoUrl,
+  className,
+}: ToolCardProps) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "block bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 border border-transparent hover:border-primary/20 group",
+        className
+      )}
+    >
+      <div className="flex gap-4">
+        {/* Logo */}
+        <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+          {logoUrl ? (
+            <SafeImage
+              src={logoUrl}
+              alt={`${name} logo`}
+              width={64}
+              height={64}
+              className="object-cover"
+              fallbackSrc="/placeholders/tool-placeholder.svg"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
+              {name.charAt(0)}
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+              {name}
+            </h3>
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary shrink-0" />
+          </div>
+          
+          {description && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+              {description}
+            </p>
+          )}
+
+          {/* Meta */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              {category}
+            </span>
+            <span className={cn(
+              "text-xs font-bold px-2 py-0.5 rounded-full uppercase",
+              pricingBadgeColors[pricingModel]
+            )}>
+              {pricingModel}
+            </span>
+          </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+              {tags.length > 3 && (
+                <span className="text-xs text-gray-400">+{tags.length - 3}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </a>
+  )
+}
+```
+
+**Step 2: Create tool placeholder SVG**
+
+Create `public/placeholders/tool-placeholder.svg`:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="12" fill="#F3F4F6"/>
+  <path d="M32 20v24M44 32H20" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+</svg>
+```
+
+**Step 3: Commit**
+```bash
+git add src/components/cards/ToolCard.tsx public/placeholders/tool-placeholder.svg
+git commit -m "feat(components): add ToolCard for tools directory"
+```
+
+---
+
+### Task 5: Create DigestCard Component
+
+**Files:**
+- Create: `src/components/cards/DigestCard.tsx`
+
+**Step 1: Create component**
+```typescript
+// src/components/cards/DigestCard.tsx
+import { Calendar, Headphones, FileText } from 'lucide-react'
+import { AudioPlayer } from '@/components/ui/AudioPlayer'
+import { cn } from '@/lib/utils'
+
+interface DigestCardProps {
+  digestDate: string
+  summaryText: string
+  audioUrl: string | null
+  audioStatus: 'pending' | 'completed' | 'failed'
+  articleCount: number
+  className?: string
+  expanded?: boolean
+}
+
+export function DigestCard({
+  digestDate,
+  summaryText,
+  audioUrl,
+  audioStatus,
+  articleCount,
+  className,
+  expanded = false,
+}: DigestCardProps) {
+  const formattedDate = new Date(digestDate).toLocaleDateString('en-AU', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  return (
+    <div className={cn(
+      "bg-surface-light dark:bg-surface-dark rounded-2xl shadow-soft overflow-hidden",
+      className
+    )}>
+      {/* Header */}
+      <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Calendar className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white">
+              Daily Digest
+            </h3>
+            <p className="text-sm text-gray-500">{formattedDate}</p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-4 mt-3">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <FileText className="w-4 h-4" />
+            <span>{articleCount} articles</span>
+          </div>
+          {audioUrl && audioStatus === 'completed' && (
+            <div className="flex items-center gap-1.5 text-sm text-primary">
+              <Headphones className="w-4 h-4" />
+              <span>Audio available</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="p-5">
+        <p className={cn(
+          "text-gray-600 dark:text-gray-300 leading-relaxed",
+          !expanded && "line-clamp-4"
+        )}>
+          {summaryText}
+        </p>
+      </div>
+
+      {/* Audio Player (if available) */}
+      {audioUrl && audioStatus === 'completed' && (
+        <div className="px-5 pb-5">
+          <AudioPlayer
+            src={audioUrl}
+            title="Listen to today's digest"
+          />
+        </div>
+      )}
+
+      {/* Audio Pending State */}
+      {audioStatus === 'pending' && (
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span>Audio is being generated...</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+**Step 2: Commit**
+```bash
+git add src/components/cards/DigestCard.tsx
+git commit -m "feat(components): add DigestCard with embedded audio player"
+```
+
+---
+
+### Task 6: Create SearchInput Component
+
+**Files:**
+- Create: `src/components/ui/SearchInput.tsx`
+
+**Step 1: Create component**
+```typescript
+// src/components/ui/SearchInput.tsx
+'use client'
+
+import { Search, X } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
+
+interface SearchInputProps {
+  placeholder?: string
+  value?: string
+  onChange: (value: string) => void
+  debounceMs?: number
+  className?: string
+}
+
+export function SearchInput({
+  placeholder = 'Search...',
+  value: controlledValue,
+  onChange,
+  debounceMs = 300,
+  className,
+}: SearchInputProps) {
+  const [internalValue, setInternalValue] = useState(controlledValue || '')
+
+  // Debounced onChange
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onChange(internalValue)
+    }, debounceMs)
+
+    return () => clearTimeout(timer)
+  }, [internalValue, debounceMs, onChange])
+
+  // Sync with controlled value
+  useEffect(() => {
+    if (controlledValue !== undefined) {
+      setInternalValue(controlledValue)
+    }
+  }, [controlledValue])
+
+  const handleClear = useCallback(() => {
+    setInternalValue('')
+    onChange('')
+  }, [onChange])
+
+  return (
+    <div className={cn("relative", className)}>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <input
+        type="text"
+        value={internalValue}
+        onChange={(e) => setInternalValue(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-10 pr-10 py-2.5 bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+      />
+      {internalValue && (
+        <button
+          onClick={handleClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+```
+
+**Step 2: Commit**
+```bash
+git add src/components/ui/SearchInput.tsx
+git commit -m "feat(components): add SearchInput with debounce"
+```
+
+---
+
+### Task 7: Final Verification
+
+**Step 1: Run build to verify all components compile**
+```bash
+npm run build
+```
+
+**Step 2: Run lint**
+```bash
+npm run lint
+```
+
+**Step 3: Push branch**
+```bash
+git push -u origin feature/phase0-components
+```
+
+**Step 4: Update PROJECT_TRACKER.md**
+```markdown
+### [timestamp] — Agent [ID] — Branch: feature/phase0-components
+**Status:** Complete
+**Summary:** Created SafeImage, AudioPlayer, ToolCard, DigestCard, SearchInput components. Fixed hydration warning.
+**Issues:** None
+**Next:** Ready for merge to develop
+```
+
+---
+
+
 ## Phase 0.4: Utility Functions
 
-**Branch:** `feature/phase0-utilities`  
-**Estimated Time:** 2-3 hours  
+**Branch:** `feature/phase0-utilities`
+**Estimated Time:** 2-3 hours
 **Prerequisites:** Next.js project initialized
 
-*(Detailed implementation steps continue...)*
+### Overview
+
+**⚠️ IMPORTANT:** `src/lib/utils.ts` with `cn()` already exists on `feature/phase0-components`. Do NOT recreate it. `clsx` and `tailwind-merge` are already installed. Skip Task 1 below.
+
+Utility functions provide shared functionality across the codebase:
+
+| Utility | Purpose | File |
+|---------|---------|------|
+| `cn` | Tailwind class merging | `src/lib/utils.ts` (**already exists**) |
+| `sanitize` | HTML sanitization (XSS protection) | `src/lib/sanitize.ts` |
+| `llm` | LLM client with fallback | `src/lib/llm.ts` |
+| `auth` | CRON job auth (timing-safe) | `src/lib/auth.ts` |
+| Health API | System health endpoint | `src/app/api/health/route.ts` |
+
+---
+
+### Task 1: Class Merge Utility — ~~SKIP~~ (already done)
+
+**Status:** ✅ Already implemented on `feature/phase0-components`
+**File:** `src/lib/utils.ts` contains `cn()` function
+**Packages:** `clsx` and `tailwind-merge` already in `package.json`
+
+~~**Files:**~~
+~~- Create: `src/lib/utils.ts`~~
+
+The code below is already in place — do not recreate:
+```typescript
+// src/lib/utils.ts — ALREADY EXISTS
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+/**
+ * Format relative time (e.g., "2h ago")
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const now = new Date()
+  const then = new Date(date)
+  const diffMs = now.getTime() - then.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  
+  return then.toLocaleDateString('en-AU', {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+/**
+ * Truncate text with ellipsis
+ */
+export function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength).trim() + '...'
+}
+
+/**
+ * Generate a slug from text
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+```
+
+**Step 3: Commit**
+```bash
+git add src/lib/utils.ts package*.json
+git commit -m "feat(lib): add utility functions (cn, formatRelativeTime, truncate, slugify)"
+```
+
+---
+
+### Task 2: Create HTML Sanitizer
+
+**Files:**
+- Create: `src/lib/sanitize.ts`
+
+**Step 1: Install DOMPurify**
+```bash
+npm install isomorphic-dompurify
+```
+
+**Step 2: Create sanitizer**
+```typescript
+// src/lib/sanitize.ts
+import DOMPurify from 'isomorphic-dompurify'
+
+/**
+ * Sanitize HTML to prevent XSS attacks
+ * Allows only safe tags for content display
+ */
+export function sanitizeHtml(dirty: string): string {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'li', 'ol'],
+    ALLOWED_ATTR: ['href', 'title'],
+    ALLOW_DATA_ATTR: false,
+  })
+}
+
+/**
+ * Strip all HTML tags, returning plain text
+ */
+export function stripHtml(dirty: string): string {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  })
+}
+
+/**
+ * Sanitize for safe text display (no HTML)
+ */
+export function sanitizeText(dirty: string): string {
+  const stripped = stripHtml(dirty)
+  // Also escape any remaining special characters
+  return stripped
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+```
+
+**Step 3: Commit**
+```bash
+git add src/lib/sanitize.ts package*.json
+git commit -m "feat(lib): add HTML sanitizer for XSS protection"
+```
+
+---
+
+### Task 3: Create LLM Client with Fallback
+
+**Files:**
+- Create: `src/lib/llm.ts`
+
+**Step 1: Install AI SDKs**
+```bash
+npm install @google/generative-ai groq-sdk
+```
+
+**Step 2: Create LLM client with fallback**
+```typescript
+// src/lib/llm.ts
+
+interface LLMResponse {
+  text: string
+  model: string
+  tokensUsed?: number
+}
+
+interface LLMOptions {
+  maxTokens?: number
+  temperature?: number
+}
+
+/**
+ * Attempt Gemini first, fallback to Groq if quota exceeded
+ * Returns null on safety block or unrecoverable error
+ */
+export async function generateText(
+  prompt: string,
+  systemPrompt?: string,
+  options: LLMOptions = {}
+): Promise<LLMResponse | null> {
+  const { maxTokens = 512, temperature = 0.7 } = options
+
+  // Try Gemini first
+  try {
+    const result = await callGemini(prompt, systemPrompt, { maxTokens, temperature })
+    return result
+  } catch (error: any) {
+    console.warn('[LLM] Gemini failed:', error.message)
+    
+    // If quota exceeded, try Groq
+    if (error.message?.includes('quota') || error.message?.includes('429')) {
+      console.log('[LLM] Falling back to Groq...')
+      try {
+        const result = await callGroq(prompt, systemPrompt, { maxTokens, temperature })
+        return result
+      } catch (groqError: any) {
+        console.error('[LLM] Groq fallback failed:', groqError.message)
+        return null
+      }
+    }
+
+    // If safety filter, return null
+    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+      console.warn('[LLM] Content blocked by safety filter')
+      return null
+    }
+
+    throw error
+  }
+}
+
+async function callGemini(
+  prompt: string,
+  systemPrompt: string | undefined,
+  options: LLMOptions
+): Promise<LLMResponse> {
+  const { GoogleGenerativeAI } = await import('@google/generative-ai')
+  
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: options.maxTokens,
+      temperature: options.temperature,
+    },
+  })
+
+  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt
+  const result = await model.generateContent(fullPrompt)
+  const response = result.response
+
+  return {
+    text: response.text(),
+    model: modelName,
+  }
+}
+
+async function callGroq(
+  prompt: string,
+  systemPrompt: string | undefined,
+  options: LLMOptions
+): Promise<LLMResponse> {
+  const Groq = (await import('groq-sdk')).default
+  
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+  
+  const messages: Array<{ role: 'system' | 'user'; content: string }> = []
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt })
+  }
+  messages.push({ role: 'user', content: prompt })
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.1-8b-instant',
+    messages,
+    max_tokens: options.maxTokens,
+    temperature: options.temperature,
+  })
+
+  return {
+    text: completion.choices[0]?.message?.content || '',
+    model: 'llama-3.1-8b-instant',
+    tokensUsed: completion.usage?.total_tokens,
+  }
+}
+
+/**
+ * System prompts for different use cases
+ */
+export const SYSTEM_PROMPTS = {
+  summarize: `You are a concise AI news summarizer. 
+Summarize the article in 2-3 sentences, focusing on:
+1. The main news/announcement
+2. Why it matters to AI professionals
+3. Key numbers or facts
+
+Keep it factual, no hype. Write in active voice.`,
+
+  dailyDigest: `You are the editor of an AI news briefing.
+Write a 3-paragraph executive summary of today's top AI news:
+1. Lead story and why it matters
+2. 2-3 other notable developments  
+3. Emerging trend or theme
+
+Tone: Professional but accessible. No jargon without explanation.`,
+}
+```
+
+**Step 3: Commit**
+```bash
+git add src/lib/llm.ts package*.json
+git commit -m "feat(lib): add LLM client with Gemini/Groq fallback"
+```
+
+---
+
+### Task 4: Create Health Check API
+
+**Files:**
+- Create: `src/app/api/health/route.ts`
+
+**Step 1: Create health endpoint**
+```typescript
+// src/app/api/health/route.ts
+import { NextResponse } from 'next/server'
+
+interface HealthCheck {
+  status: 'healthy' | 'degraded' | 'unhealthy'
+  timestamp: string
+  version: string
+  checks: {
+    name: string
+    status: 'pass' | 'fail'
+    message?: string
+    latency_ms?: number
+  }[]
+}
+
+export async function GET() {
+  const startTime = Date.now()
+  const checks: HealthCheck['checks'] = []
+
+  // Check environment variables
+  const requiredEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_KEY']
+  const missingEnvVars = requiredEnvVars.filter(v => !process.env[v])
+  
+  checks.push({
+    name: 'environment',
+    status: missingEnvVars.length === 0 ? 'pass' : 'fail',
+    message: missingEnvVars.length > 0 
+      ? `Missing: ${missingEnvVars.join(', ')}` 
+      : 'All required env vars present',
+  })
+
+  // Check database connection (if Supabase is configured)
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    const dbStart = Date.now()
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase')
+      const { error } = await supabaseAdmin.from('articles').select('id').limit(1)
+      
+      checks.push({
+        name: 'database',
+        status: error ? 'fail' : 'pass',
+        message: error ? error.message : 'Connected to Supabase',
+        latency_ms: Date.now() - dbStart,
+      })
+    } catch (e: any) {
+      checks.push({
+        name: 'database',
+        status: 'fail',
+        message: e.message,
+        latency_ms: Date.now() - dbStart,
+      })
+    }
+  }
+
+  // Determine overall status
+  const failedChecks = checks.filter(c => c.status === 'fail')
+  let status: HealthCheck['status'] = 'healthy'
+  if (failedChecks.length > 0) {
+    status = failedChecks.some(c => c.name === 'database') ? 'unhealthy' : 'degraded'
+  }
+
+  const response: HealthCheck = {
+    status,
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '0.0.0',
+    checks,
+  }
+
+  const httpStatus = status === 'healthy' ? 200 : status === 'degraded' ? 200 : 503
+
+  return NextResponse.json(response, { 
+    status: httpStatus,
+    headers: {
+      'Cache-Control': 'no-store',
+    }
+  })
+}
+```
+
+**Step 2: Commit**
+```bash
+git add src/app/api/health/route.ts
+git commit -m "feat(api): add health check endpoint"
+```
+
+---
+
+### Task 5: Create CRON Job Authorization Middleware
+
+**Files:**
+- Create: `src/lib/auth.ts`
+
+**Step 1: Create auth helper (uses timing-safe comparison)**
+```typescript
+// src/lib/auth.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
+
+/**
+ * Verify CRON_SECRET for job endpoints
+ * Uses crypto.timingSafeEqual to prevent timing attacks.
+ * Use in API routes: if (!verifyCronAuth(request)) return unauthorized()
+ */
+export function verifyCronAuth(request: NextRequest): boolean {
+  const authHeader = request.headers.get('Authorization')
+  const expectedSecret = process.env.CRON_SECRET
+
+  if (!expectedSecret) {
+    console.error('[Auth] CRON_SECRET not configured')
+    return false
+  }
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return false
+  }
+
+  const token = authHeader.slice(7)
+
+  // Use timing-safe comparison to prevent timing attacks
+  const tokenBuf = Buffer.from(token)
+  const secretBuf = Buffer.from(expectedSecret)
+  if (tokenBuf.length !== secretBuf.length) return false
+  return timingSafeEqual(tokenBuf, secretBuf)
+}
+
+/**
+ * Standard unauthorized response for job endpoints
+ */
+export function unauthorizedResponse(): NextResponse {
+  return NextResponse.json(
+    { error: 'Unauthorized', message: 'Invalid or missing Bearer token' },
+    { status: 401 }
+  )
+}
+
+/**
+ * Standard error response
+ */
+export function errorResponse(message: string, status = 500): NextResponse {
+  return NextResponse.json(
+    { error: 'Error', message },
+    { status }
+  )
+}
+
+/**
+ * Standard success response
+ */
+export function successResponse<T>(data: T, status = 200): NextResponse {
+  return NextResponse.json(data, { status })
+}
+```
+
+**Step 2: Commit**
+```bash
+git add src/lib/auth.ts
+git commit -m "feat(lib): add CRON job authorization helper"
+```
+
+---
+
+### Task 6: Final Verification
+
+**Step 1: Run build to verify all utilities compile**
+```bash
+npm run build
+```
+
+**Step 2: Test health endpoint**
+```bash
+curl http://localhost:3000/api/health | jq
+```
+
+Expected output (before database setup):
+```json
+{
+  "status": "degraded",
+  "timestamp": "...",
+  "version": "0.0.0",
+  "checks": [
+    { "name": "environment", "status": "fail", "message": "Missing: ..." }
+  ]
+}
+```
+
+**Step 3: Push branch**
+```bash
+git push -u origin feature/phase0-utilities
+```
+
+**Step 4: Update PROJECT_TRACKER.md**
+```markdown
+### [timestamp] — Agent [ID] — Branch: feature/phase0-utilities
+**Status:** Complete
+**Summary:** Created cn utility, sanitizeHtml, LLM client with fallback, health API, and CRON auth middleware.
+**Issues:** None
+**Next:** Ready for merge to develop
+```
 
 ---
 
 # Phase 1: News Fetching & Display
+
 
 *(Plans to be detailed after Phase 0 completion)*
 

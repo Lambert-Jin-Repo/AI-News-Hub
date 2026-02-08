@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { NewsCard } from "@/components/cards/NewsCard";
+import { NewsCard, type NewsCardProps } from "@/components/cards/NewsCard";
 import {
   PlayCircle,
   Share2,
@@ -10,24 +10,76 @@ import {
   FileText,
   Hammer,
   Mail,
-  Bot,
-  Cpu,
-  Brain,
-  Gavel,
-  Code,
-  ShieldAlert,
 } from "lucide-react";
+
+const todayFormatted = new Date().toLocaleDateString("en-AU", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+// Mock data — will be replaced by Supabase queries in Phase 1
+const mockArticles: NewsCardProps[] = [
+  {
+    source: "TechCrunch",
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    title: "OpenAI Announces GPT-5 Developer Preview",
+    description:
+      "The new model promises enhanced reasoning capabilities and reduced hallucination rates for enterprise applications.",
+    url: "#",
+  },
+  {
+    source: "Wired",
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    title: "Nvidia Unveils Next-Gen Inference Chip",
+    description:
+      "The H200 chip aims to slash LLM running costs by 50% while doubling memory bandwidth for larger models.",
+    url: "#",
+  },
+  {
+    source: "The Verge",
+    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    title: "DeepMind Solves Protein Folding Anomaly",
+    description:
+      "AlphaFold 3 cracks a decades-old biological problem, potentially accelerating drug discovery for rare diseases.",
+    url: "#",
+  },
+  {
+    source: "Reuters",
+    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    title: "EU AI Act Enters Final Negotiation Phase",
+    description:
+      "Lawmakers debate stringent requirements for foundational models and exemptions for open-source research.",
+    url: "#",
+  },
+  {
+    source: "GitHub Blog",
+    publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    title: "Copilot X Adds Voice Coding Features",
+    description:
+      "Developers can now control their IDE entirely through voice commands, a boon for accessibility.",
+    url: "#",
+  },
+  {
+    source: "Ars Technica",
+    publishedAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
+    title: "Prompt Injection Vulnerability Found",
+    description:
+      "Researchers demonstrate how hidden text on websites can manipulate AI assistants into leaking private data.",
+    url: "#",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+    <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-grow w-full max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Hero Section Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Hero Left: Daily Briefing */}
-          <div className="lg:col-span-8 bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft p-8 relative overflow-hidden group">
+          <div className="lg:col-span-8 bg-[var(--surface)] rounded-[16px] shadow-soft p-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
@@ -36,27 +88,27 @@ export default function Home() {
                   Live Updates
                 </span>
               </div>
-              <span className="text-[#4c9a93] text-sm font-medium">
-                October 24, 2023
+              <span className="text-[#4c9a93] dark:text-[#6bb5ae] text-sm font-medium">
+                {todayFormatted}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#0d1b1a] dark:text-white leading-[1.15] mb-6">
               Your Daily <span className="text-primary">AI Briefing</span>
             </h1>
-            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 space-y-4">
+            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-200 space-y-4">
               <p className="text-lg leading-relaxed">
                 Today&apos;s top story involves a significant leap in multimodal
                 models. Major labs have released benchmarks showing a 40%
                 efficiency gain in reasoning tasks, signaling a shift away from
                 pure parameter scaling towards architectural optimization.
               </p>
-              <p className="text-base leading-relaxed opacity-90">
+              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
                 In regulatory news, the EU AI Act continues to spark debate over
                 open-source liabilities, while Silicon Valley sees a surge in
                 &apos;vertical AI&apos; startups focusing on legal and medical
                 applications.
               </p>
-              <p className="text-base leading-relaxed opacity-90">
+              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
                 Meanwhile, hardware constraints are easing as new dedicated
                 inference chips hit the market, potentially lowering the cost of
                 running LLMs locally by half within the next quarter.
@@ -77,21 +129,21 @@ export default function Home() {
           {/* Hero Right: Audio & Featured */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             {/* Audio Player Card */}
-            <div className="bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft p-6 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
+            <div className="bg-[var(--surface)] rounded-[16px] shadow-soft p-6 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
               <div>
                 <div className="flex items-start justify-between mb-2">
                   <div className="bg-primary/10 p-2 rounded-full text-primary">
                     <Headphones className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-gray-400">
+                  <span className="text-xs font-bold text-gray-400 dark:text-gray-300">
                     12:45 MIN
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-[#0d1b1a] dark:text-white mb-1">
                   Today&apos;s Audio Briefing
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-300">
                   Listen to the key highlights on the go.
                 </p>
               </div>
@@ -150,7 +202,7 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-white mb-2">
                   Browse AI Tools
                 </h3>
-                <p className="text-gray-400 text-sm mb-4">
+                <p className="text-gray-300 text-sm mb-4">
                   Discover the latest productivity apps and models.
                 </p>
                 <div className="flex -space-x-3">
@@ -168,7 +220,7 @@ export default function Home() {
         </div>
 
         {/* Stats Row */}
-        <div className="bg-surface-light dark:bg-surface-dark rounded-[16px] shadow-soft py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-800">
+        <div className="bg-[var(--surface)] rounded-[16px] shadow-soft py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-800">
           <div className="flex items-center gap-4 px-6 w-full md:w-auto justify-center md:justify-start">
             <div className="p-3 bg-accent/10 rounded-full text-accent">
               <FileText className="w-6 h-6" />
@@ -177,7 +229,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 150+
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Articles Scanned
               </p>
             </div>
@@ -190,7 +242,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 45+
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 New AI Tools
               </p>
             </div>
@@ -203,7 +255,7 @@ export default function Home() {
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
                 7
               </p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Daily Briefings
               </p>
             </div>
@@ -225,54 +277,9 @@ export default function Home() {
             </a>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <NewsCard
-              source="TechCrunch"
-              timeAgo="2h ago"
-              title="OpenAI Announces GPT-5 Developer Preview"
-              description="The new model promises enhanced reasoning capabilities and reduced hallucination rates for enterprise applications."
-              icon={<Bot className="w-8 h-8 text-indigo-500" />}
-              iconBgInfo="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Wired"
-              timeAgo="4h ago"
-              title="Nvidia Unveils Next-Gen Inference Chip"
-              description="The H200 chip aims to slash LLM running costs by 50% while doubling memory bandwidth for larger models."
-              icon={<Cpu className="w-8 h-8 text-emerald-500" />}
-              iconBgInfo="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="The Verge"
-              timeAgo="5h ago"
-              title="DeepMind Solves Protein Folding Anomaly"
-              description="AlphaFold 3 cracks a decades-old biological problem, potentially accelerating drug discovery for rare diseases."
-              icon={<Brain className="w-8 h-8 text-purple-500" />}
-              iconBgInfo="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Reuters"
-              timeAgo="6h ago"
-              title="EU AI Act Enters Final Negotiation Phase"
-              description="Lawmakers debate stringent requirements for foundational models and exemptions for open-source research."
-              icon={<Gavel className="w-8 h-8 text-orange-500" />}
-              iconBgInfo="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="GitHub Blog"
-              timeAgo="8h ago"
-              title="Copilot X Adds Voice Coding Features"
-              description="Developers can now control their IDE entirely through voice commands, a boon for accessibility."
-              icon={<Code className="w-8 h-8 text-cyan-500" />}
-              iconBgInfo="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Ars Technica"
-              timeAgo="10h ago"
-              title="Prompt Injection Vulnerability Found"
-              description="Researchers demonstrate how hidden text on websites can manipulate AI assistants into leaking private data."
-              icon={<ShieldAlert className="w-8 h-8 text-rose-500" />}
-              iconBgInfo="bg-gradient-to-br from-rose-50 to-red-50 dark:from-gray-800 dark:to-gray-700"
-            />
+            {mockArticles.map((article) => (
+              <NewsCard key={article.title} {...article} />
+            ))}
           </div>
         </div>
       </main>
