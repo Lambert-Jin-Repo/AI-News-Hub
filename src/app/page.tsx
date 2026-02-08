@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { NewsCard } from "@/components/cards/NewsCard";
+import { NewsCard, type NewsCardProps } from "@/components/cards/NewsCard";
 import {
   PlayCircle,
   Share2,
@@ -10,12 +10,6 @@ import {
   FileText,
   Hammer,
   Mail,
-  Bot,
-  Cpu,
-  Brain,
-  Gavel,
-  Code,
-  ShieldAlert,
 } from "lucide-react";
 
 const todayFormatted = new Date().toLocaleDateString("en-AU", {
@@ -23,6 +17,58 @@ const todayFormatted = new Date().toLocaleDateString("en-AU", {
   month: "long",
   day: "numeric",
 });
+
+// Mock data — will be replaced by Supabase queries in Phase 1
+const mockArticles: NewsCardProps[] = [
+  {
+    source: "TechCrunch",
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    title: "OpenAI Announces GPT-5 Developer Preview",
+    description:
+      "The new model promises enhanced reasoning capabilities and reduced hallucination rates for enterprise applications.",
+    url: "#",
+  },
+  {
+    source: "Wired",
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    title: "Nvidia Unveils Next-Gen Inference Chip",
+    description:
+      "The H200 chip aims to slash LLM running costs by 50% while doubling memory bandwidth for larger models.",
+    url: "#",
+  },
+  {
+    source: "The Verge",
+    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    title: "DeepMind Solves Protein Folding Anomaly",
+    description:
+      "AlphaFold 3 cracks a decades-old biological problem, potentially accelerating drug discovery for rare diseases.",
+    url: "#",
+  },
+  {
+    source: "Reuters",
+    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    title: "EU AI Act Enters Final Negotiation Phase",
+    description:
+      "Lawmakers debate stringent requirements for foundational models and exemptions for open-source research.",
+    url: "#",
+  },
+  {
+    source: "GitHub Blog",
+    publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    title: "Copilot X Adds Voice Coding Features",
+    description:
+      "Developers can now control their IDE entirely through voice commands, a boon for accessibility.",
+    url: "#",
+  },
+  {
+    source: "Ars Technica",
+    publishedAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
+    title: "Prompt Injection Vulnerability Found",
+    description:
+      "Researchers demonstrate how hidden text on websites can manipulate AI assistants into leaking private data.",
+    url: "#",
+  },
+];
 
 export default function Home() {
   return (
@@ -231,54 +277,9 @@ export default function Home() {
             </a>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <NewsCard
-              source="TechCrunch"
-              timeAgo="2h ago"
-              title="OpenAI Announces GPT-5 Developer Preview"
-              description="The new model promises enhanced reasoning capabilities and reduced hallucination rates for enterprise applications."
-              icon={<Bot className="w-8 h-8 text-indigo-500" />}
-              iconBgInfo="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Wired"
-              timeAgo="4h ago"
-              title="Nvidia Unveils Next-Gen Inference Chip"
-              description="The H200 chip aims to slash LLM running costs by 50% while doubling memory bandwidth for larger models."
-              icon={<Cpu className="w-8 h-8 text-emerald-500" />}
-              iconBgInfo="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="The Verge"
-              timeAgo="5h ago"
-              title="DeepMind Solves Protein Folding Anomaly"
-              description="AlphaFold 3 cracks a decades-old biological problem, potentially accelerating drug discovery for rare diseases."
-              icon={<Brain className="w-8 h-8 text-purple-500" />}
-              iconBgInfo="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Reuters"
-              timeAgo="6h ago"
-              title="EU AI Act Enters Final Negotiation Phase"
-              description="Lawmakers debate stringent requirements for foundational models and exemptions for open-source research."
-              icon={<Gavel className="w-8 h-8 text-orange-500" />}
-              iconBgInfo="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="GitHub Blog"
-              timeAgo="8h ago"
-              title="Copilot X Adds Voice Coding Features"
-              description="Developers can now control their IDE entirely through voice commands, a boon for accessibility."
-              icon={<Code className="w-8 h-8 text-cyan-500" />}
-              iconBgInfo="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-800 dark:to-gray-700"
-            />
-            <NewsCard
-              source="Ars Technica"
-              timeAgo="10h ago"
-              title="Prompt Injection Vulnerability Found"
-              description="Researchers demonstrate how hidden text on websites can manipulate AI assistants into leaking private data."
-              icon={<ShieldAlert className="w-8 h-8 text-rose-500" />}
-              iconBgInfo="bg-gradient-to-br from-rose-50 to-red-50 dark:from-gray-800 dark:to-gray-700"
-            />
+            {mockArticles.map((article) => (
+              <NewsCard key={article.title} {...article} />
+            ))}
           </div>
         </div>
       </main>
