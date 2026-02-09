@@ -32,6 +32,17 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
+      - name: Create Artifact Registry (if not exists)
+        run: |
+          gcloud artifacts repositories describe ai-news-hub \
+            --location=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} 2>/dev/null || \
+          gcloud artifacts repositories create ai-news-hub \
+            --repository-format=docker \
+            --location=${{ env.REGION }} \
+            --description="AI News Hub container images" \
+            --project=${{ env.PROJECT_ID }}
+
       - name: Build Docker image
         run: |
           docker build \
@@ -44,7 +55,7 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.REGISTRY }}/${{ env.SERVICE }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.REGISTRY }}/${{ env.SERVICE }}:latest
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run (Budget-Optimized)
         run: |
           gcloud run deploy ${{ env.SERVICE }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.REGISTRY }}/${{ env.SERVICE }}:${{ github.sha }} \
@@ -52,11 +63,14 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --memory 512Mi \
+            --memory 256Mi \
             --cpu 1 \
             --min-instances 0 \
-            --max-instances 2 \
+            --max-instances 1 \
+            --cpu-throttling \
+            --no-cpu-boost \
             --set-env-vars "NODE_ENV=production"
 
       - name: Clean up old images
         run: bash scripts/cleanup-images.sh
+
