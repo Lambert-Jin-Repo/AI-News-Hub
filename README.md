@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI News Hub
+
+> Your daily AI briefing — aggregated news, LLM-powered summaries, and audio digests.
+
+## Features
+
+- **📰 Automated News Aggregation** — Fetches AI news from multiple RSS sources
+- **🤖 LLM-Powered Summaries** — Gemini 2.0 Flash generates structured article summaries
+- **🎯 Smart Classification** — Articles auto-classified into LLM, Agents, Models, Research, Tools
+- **📊 Relevance Filtering** — Low-relevance articles automatically skipped
+- **📝 Daily Digests** — Sectioned briefings with The Big Picture, Key Releases, Worth Watching
+- **🎧 Audio Briefings** — TTS-generated podcast-style audio via Google Cloud
+- **🔧 AI Tools Directory** — Curated collection of AI tools with link health monitoring
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React, Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **LLM**: Gemini 2.0 Flash (primary), Groq (fallback)
+- **TTS**: Google Cloud Text-to-Speech
+- **Hosting**: Google Cloud Run
+- **CDN**: Cloudflare
+- **CI/CD**: GitHub Actions
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your API keys
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon key |
+| `SUPABASE_SECRET_KEY` | Yes | Supabase service role key |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `CRON_SECRET` | Yes | Secret for protecting CRON endpoints |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Yes | Path to GCP service account JSON |
+| `GROQ_API_KEY` | No | Fallback LLM provider |
+| `GNEWS_API_KEY` | No | Additional news source |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/jobs/           # CRON job endpoints
+│   ├── news/               # News feed pages
+│   └── tools/              # AI tools directory
+├── components/             # React components
+├── lib/                    # Core utilities
+│   ├── summariser.ts       # Article classification & summarization
+│   ├── digest-generator.ts # Daily digest generation
+│   ├── llm-client.ts       # LLM provider abstraction
+│   └── tts-client.ts       # Text-to-speech
+└── __tests__/              # Test suites
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cost Optimization
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is designed to run on **~$0.80/month**:
 
-## Deploy on Vercel
+- CRON: Fetch 2×/day, summarise every 2h
+- Article limit: 20/day max
+- TTS: Standard voice (free tier)
+- Retention: 30 days articles, 14 days audio
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `docs/COST_OPTIMIZATION.md` for details.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Documentation
+
+- `IMPLEMENTATION_PLANS.md` — Detailed phase-by-phase development plans
+- `PROJECT_TRACKER.md` — Task assignments and progress
+- `docs/COST_OPTIMIZATION.md` — Cost reduction strategies
+- `AI_News_Hub_RPD_v2.2.md` — Product requirements document
+
+## License
+
+MIT

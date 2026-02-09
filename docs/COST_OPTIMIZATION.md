@@ -61,12 +61,12 @@ voice: {
 
 ### Strategy 2: Reduce CRON Frequencies
 
-**Savings:** ~$1.50/month  
+**Savings:** ~$1.80/month  
 **Effort:** Config change only
 
 | Job | Current | Optimized | Impact |
 |-----|---------|-----------|--------|
-| Summarise | Every 30 min (48×/day) | Every 2 hours (12×/day) | -75% runs |
+| Summarise | Every 30 min (48×/day) | 30 min after fetch (2×/day) | -96% runs |
 | Fetch news | Every 6 hours (4×/day) | Every 12 hours (2×/day) | -50% runs |
 | Daily digest | 1×/day | 1×/day | No change |
 
@@ -75,11 +75,11 @@ voice: {
 ```yaml
 on:
   schedule:
-    # Optimized: Fetch 2×/day instead of 4×
+    # Fetch 2×/day
     - cron: "0 0,12 * * *"
     
-    # Optimized: Summarise every 2 hours instead of 30 min
-    - cron: "0 */2 * * *"
+    # Summarise 30 min after each fetch
+    - cron: "30 0,12 * * *"
     
     # Daily digest unchanged
     - cron: "0 0 * * *"
