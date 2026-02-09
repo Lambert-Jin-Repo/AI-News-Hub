@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-02-09
-**Status:** ✅ Phase 0 Complete
+**Status:** ✅ Phase 1 Complete
 
 ---
 
@@ -56,7 +56,7 @@
 | Phase | Name | Duration | Status | Dependencies |
 |-------|------|----------|--------|--------------|
 | 0 | Environment & Guardrails | Week 1 | ✅ Complete | None |
-| 1 | News Fetching & Display | Weeks 2-3 | ⏳ Not Started | Phase 0 |
+| 1 | News Fetching & Display | Weeks 2-3 | ✅ Complete | Phase 0 |
 | 2 | AI Summaries | Weeks 4-5 | ⏳ Not Started | Phase 1 |
 | 3 | Audio & Directory | Weeks 6-7 | ⏳ Not Started | Phase 2 |
 | 4 | Polish & Launch | Weeks 8-9 | ⏳ Not Started | Phase 3 |
@@ -70,16 +70,14 @@
 
 ---
 
-## Current Sprint: Phase 1 — News Fetching & Display
+## Current Sprint: Phase 2 — AI Summaries
 
 ### Branch Strategy
 
 ```
 main (stable)
   └── develop (integration)
-        ├── feature/phase1-rss-fetcher      [Task 1.1]
-        ├── feature/phase1-news-pages       [Task 1.2]
-        └── feature/phase1-api-routes       [Task 1.3]
+        └── feature/phase2-summaries       [Task 2.1]
 ```
 
 ### Active Agent Assignments
@@ -90,6 +88,7 @@ main (stable)
 | `feature/phase0-database` | Supabase + Schema | Claude Opus | ✅ Complete | See Task 0.2 | 2026-02-09 |
 | `feature/phase0-components` | Core UI Components | Claude Opus | ✅ Complete | See Task 0.3 | 2026-02-08 |
 | `feature/phase0-utilities` | Utility Functions | Claude Opus | ✅ Complete | See Task 0.4 | 2026-02-09 |
+| `feature/phase1-news` | News Fetching & Display | Claude Opus | ✅ Complete | See Tasks 1.1-1.2 | 2026-02-09 |
 
 ---
 
@@ -334,6 +333,19 @@ curl http://localhost:3000/api/health
 **Completed:** Landing page, Header, Footer, NewsCard, ThemeToggle, ThemeProvider
 **Remaining:** ToolCard, DigestCard, SafeImage, AudioPlayer, FilterBar, SearchInput, Badge
 **Next:** Another AI to continue with remaining Phase 0.3 components.
+
+### 2026-02-09 — Claude Opus — Branch: feature/phase1-news → develop → main
+**Status:** Complete
+**Summary:**
+- Implemented Phase 1 (News Fetching & Display) on single branch `feature/phase1-news`
+- Task 1.1: RSS fetcher (rss-parser), GNews API fetcher, fetch-news CRON endpoint, 17 unit tests
+- Task 1.2: News API with cursor pagination + full-text search, news feed page with search/filter/load-more, article detail page with AI summary + related articles
+- Refactored NewsCard to use SafeImage and shared formatters from Phase 0.4
+- Updated env vars to 2025+ Supabase naming convention
+- Migration 005: slug column on articles + seed 4 news sources
+- Merged to develop → main. 70 tests passing, build clean.
+**Issues:** None.
+**Next:** Phase 1 complete. Ready for Phase 2 (AI Summaries).
 
 ### 2026-02-09 — Claude Opus — Phase 0 Integration
 **Status:** Complete
