@@ -1,12 +1,10 @@
+"use client";
+
 import { ArrowRight, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export type SummaryStatus =
-  | "pending"
-  | "completed"
-  | "failed_safety"
-  | "failed_quota"
-  | "skipped";
+import { formatRelativeTime } from "@/lib/formatters";
+import { SafeImage } from "@/components/ui/SafeImage";
+import type { SummaryStatus } from "@/lib/constants";
 
 export interface NewsCardProps {
   title: string;
@@ -17,25 +15,6 @@ export interface NewsCardProps {
   description: string | null;
   summaryStatus?: SummaryStatus;
   className?: string;
-}
-
-function formatRelativeTime(date: string): string {
-  const now = new Date();
-  const then = new Date(date);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return then.toLocaleDateString("en-AU", {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 export function NewsCard({
@@ -63,10 +42,13 @@ export function NewsCard({
       {/* Thumbnail */}
       <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
         {thumbnailUrl ? (
-          <img
+          <SafeImage
             src={thumbnailUrl}
             alt=""
+            width={96}
+            height={96}
             className="w-full h-full object-cover"
+            fallbackSrc="/placeholders/news-placeholder.svg"
           />
         ) : (
           <span className="text-2xl font-bold text-gray-300 dark:text-gray-600">
