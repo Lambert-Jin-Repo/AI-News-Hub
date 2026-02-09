@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { NewsFeed } from "./news-feed";
 import { BackToHome } from "@/components/ui/BackToHome";
 
@@ -10,6 +10,9 @@ export const metadata = {
 };
 
 async function getInitialArticles() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select(
@@ -22,6 +25,9 @@ async function getInitialArticles() {
 }
 
 async function getSources() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select("source")

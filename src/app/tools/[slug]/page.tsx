@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { ToolCard } from "@/components/cards/ToolCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -21,6 +21,9 @@ const pricingBadgeColors: Record<string, string> = {
 };
 
 async function getToolBySlug(slug: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data } = await supabase
     .from("tools")
     .select(
@@ -34,6 +37,9 @@ async function getToolBySlug(slug: string) {
 }
 
 async function getRelatedTools(toolId: string, category: string | null) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   let query = supabase
     .from("tools")
     .select(

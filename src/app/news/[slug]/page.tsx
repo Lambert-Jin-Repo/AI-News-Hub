@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ExternalLink, Clock } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { BackToHome } from "@/components/ui/BackToHome";
@@ -15,6 +15,9 @@ interface ArticleDetailProps {
 }
 
 async function getArticle(slug: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data } = await supabase
     .from("articles")
     .select(
@@ -31,6 +34,9 @@ async function getRelatedArticles(
   source: string | null,
   limit = 4
 ) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   let query = supabase
     .from("articles")
     .select("id, title, slug, source, published_at, thumbnail_url")

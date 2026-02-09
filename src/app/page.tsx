@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { NewsCard } from "@/components/cards/NewsCard";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import {
   PlayCircle,
   Share2,
@@ -21,6 +21,9 @@ import {
 export const revalidate = 3600;
 
 async function getLatestDigest() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data } = await supabase
     .from("daily_digests")
     .select("id, digest_date, summary_text, audio_url, audio_status")
@@ -32,6 +35,9 @@ async function getLatestDigest() {
 }
 
 async function getLatestArticles() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select(
@@ -44,6 +50,15 @@ async function getLatestArticles() {
 }
 
 async function getStats() {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return {
+      articles: 0,
+      tools: 0,
+      digests: 0,
+    };
+  }
+
   const [articlesRes, toolsRes, digestsRes] = await Promise.all([
     supabase.from("articles").select("id", { count: "exact", head: true }),
     supabase

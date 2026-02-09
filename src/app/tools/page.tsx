@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { DEFAULTS } from "@/lib/constants";
 import { ToolsFeed } from "./tools-feed";
 import { BackToHome } from "@/components/ui/BackToHome";
@@ -12,6 +12,9 @@ export const metadata = {
 };
 
 async function getInitialTools() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("tools")
     .select(
@@ -25,6 +28,9 @@ async function getInitialTools() {
 }
 
 async function getCategories() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("tools")
     .select("category")
