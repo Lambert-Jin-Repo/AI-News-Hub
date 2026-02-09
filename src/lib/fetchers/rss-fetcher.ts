@@ -30,10 +30,8 @@ function extractThumbnail(item: Record<string, unknown>): string | null {
   // media:thumbnail
   const mediaThumbnail = item.mediaThumbnail as Record<string, unknown> | undefined;
   if (mediaThumbnail?.url) return String(mediaThumbnail.url);
-  if (mediaThumbnail?.$?.url) {
-    const attrs = mediaThumbnail.$ as Record<string, unknown>;
-    return String(attrs.url);
-  }
+  const thumbAttrs = mediaThumbnail?.$ as Record<string, unknown> | undefined;
+  if (thumbAttrs?.url) return String(thumbAttrs.url);
 
   // media:content with image type
   const mediaContent = item.mediaContent as Record<string, unknown> | undefined;
@@ -93,7 +91,7 @@ export async function fetchRSS(
         url: item.link!,
         source: sourceName,
         published_at: item.isoDate || item.pubDate || null,
-        thumbnail_url: extractThumbnail(item as Record<string, unknown>),
+        thumbnail_url: extractThumbnail(item as unknown as Record<string, unknown>),
         raw_excerpt: item.contentSnippet
           ? sanitizeText(item.contentSnippet, 5000)
           : item.content
