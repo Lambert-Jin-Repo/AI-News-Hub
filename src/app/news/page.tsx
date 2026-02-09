@@ -39,14 +39,21 @@ async function getSources() {
 }
 
 async function getCategories(): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select("category")
     .not("category", "is", null)
     .order("category");
 
-  if (!data) return [];
-  return [...new Set(data.map((d) => d.category as string).filter(Boolean))];
+  const rows = (data || []) as Array<{ category: string | null }>;
+  const categories = rows
+    .map((row) => row.category)
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(categories)];
 }
 
 export default async function NewsPage() {
