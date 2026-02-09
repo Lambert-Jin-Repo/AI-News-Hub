@@ -12,6 +12,10 @@ import {
   FileText,
   Hammer,
   Mail,
+  Zap,
+  Rocket,
+  Eye,
+  Lightbulb,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -58,6 +62,40 @@ async function getStats() {
   };
 }
 
+// Section icon mapping for structured digest
+const SECTION_ICONS: Record<string, typeof Zap> = {
+  "The Big Picture": Zap,
+  "Key Releases": Rocket,
+  "Worth Watching": Eye,
+  "Developer Takeaway": Lightbulb,
+};
+
+interface DigestSection {
+  title: string;
+  content: string;
+}
+
+function parseDigestSections(text: string): DigestSection[] | null {
+  const parts = text.split(/^## /m).filter(Boolean);
+  if (parts.length < 2) return null; // Not sectioned format
+
+  const sections: DigestSection[] = [];
+  for (const part of parts) {
+    const [titleLine, ...rest] = part.split("\n");
+    const title = titleLine.trim();
+    sections.push({ title, content: rest.join("\n").trim() });
+  }
+
+  return sections.length > 0 ? sections : null;
+}
+
+/**
+ * Render inline bold markdown (**text**) as <strong> tags.
+ */
+function renderMarkdownInline(text: string): string {
+  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
 export default async function Home() {
   const [digest, articles, stats] = await Promise.all([
     getLatestDigest(),
@@ -70,6 +108,10 @@ export default async function Home() {
     month: "long",
     day: "numeric",
   });
+
+  const digestSections = digest?.summary_text
+    ? parseDigestSections(digest.summary_text)
+    : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -96,7 +138,59 @@ export default async function Home() {
               Your Daily <span className="text-primary">AI Briefing</span>
             </h1>
             <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-200 space-y-4">
-              {digest?.summary_text ? (
+              {digestSections ? (
+                /* Structured sectioned digest */
+                <div className="space-y-6">
+                  {digestSections.map((section: DigestSection, idx: number) => {
+                    const IconComponent =
+                      SECTION_ICONS[section.title] || FileText;
+                    return (
+                      <div key={idx}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <IconComponent className="w-5 h-5 text-primary shrink-0" />
+                          <h3 className="text-base font-bold text-[#0d1b1a] dark:text-white m-0">
+                            {section.title}
+                          </h3>
+                        </div>
+                        <div className="pl-7">
+                          {section.content
+                            .split("\n")
+                            .filter(Boolean)
+                            .map((line: string, i: number) => {
+                              if (line.startsWith("- ")) {
+                                return (
+                                  <div
+                                    key={i}
+                                    className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 mb-1.5"
+                                  >
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: renderMarkdownInline(
+                                          line.slice(2)
+                                        ),
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              }
+                              return (
+                                <p
+                                  key={i}
+                                  className="text-sm text-gray-600 dark:text-gray-300 mb-1.5"
+                                  dangerouslySetInnerHTML={{
+                                    __html: renderMarkdownInline(line),
+                                  }}
+                                />
+                              );
+                            })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : digest?.summary_text ? (
+                /* Fallback: old plain-text digest */
                 digest.summary_text
                   .split("\n\n")
                   .filter(Boolean)

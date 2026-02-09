@@ -18,6 +18,8 @@ export interface Article {
   summary_status: 'pending' | 'completed' | 'failed_safety' | 'failed_quota' | 'skipped';
   is_featured: boolean;
   is_archived: boolean;
+  category: string | null;
+  ai_metadata: Record<string, unknown> | null;
 }
 
 export interface DailyDigest {

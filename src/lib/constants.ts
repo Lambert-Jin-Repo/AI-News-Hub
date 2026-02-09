@@ -55,6 +55,24 @@ export const DEFAULTS = {
   TOOL_CHECK_FAIL_THRESHOLD: 2,
 } as const;
 
+// Article categories for LLM-focus classification
+export const ARTICLE_CATEGORY = {
+  LLM: 'llm',
+  AGENTS: 'agents',
+  MODELS: 'models',
+  RESEARCH: 'research',
+  TOOLS: 'tools',
+  OTHER: 'other',
+} as const;
+
+export type ArticleCategory = (typeof ARTICLE_CATEGORY)[keyof typeof ARTICLE_CATEGORY];
+
+// Categories considered "on-topic" for the LLM-focused site
+export const ON_TOPIC_CATEGORIES: ArticleCategory[] = ['llm', 'agents', 'models', 'research'];
+
+// Minimum relevance score (1-10) to keep an article — configurable via env var
+export const RELEVANCE_THRESHOLD = parseInt(process.env.RELEVANCE_THRESHOLD || '5', 10);
+
 // Cost optimization limits
 export const MAX_ARTICLES_PER_DAY = 20;
 export const ARTICLE_RETENTION_DAYS = 30;

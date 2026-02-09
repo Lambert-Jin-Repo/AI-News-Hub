@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { BackToHome } from "@/components/ui/BackToHome";
+import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { SummaryStatus } from "@/lib/constants";
 
@@ -17,7 +18,7 @@ async function getArticle(slug: string) {
   const { data } = await supabase
     .from("articles")
     .select(
-      "id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured"
+      "id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured, category"
     )
     .eq("slug", slug)
     .single();
@@ -91,6 +92,9 @@ export default async function ArticleDetailPage({
           <span className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-300">
             {article.source || "Unknown"}
           </span>
+          {article.category && (
+            <Badge variant="primary">{article.category.toUpperCase()}</Badge>
+          )}
           {timeDisplay && (
             <>
               <span className="text-xs text-gray-300 dark:text-gray-500">
