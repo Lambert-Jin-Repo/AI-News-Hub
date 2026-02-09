@@ -32,6 +32,7 @@ export interface DailyDigest {
 export interface Tool {
   id: string;
   name: string;
+  slug: string | null;
   description: string | null;
   url: string | null;
   category: string | null;
