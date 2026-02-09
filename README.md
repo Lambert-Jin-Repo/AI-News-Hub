@@ -108,9 +108,9 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for manual deployment steps.
 
 | Job | Schedule (UTC) |
 |-----|----------------|
-| Fetch news | 00:00, 12:00 |
-| Summarise | 00:30, 12:30 |
-| Daily digest | 00:00 |
+| Fetch news | 22:00, 10:00 (6 AM / 6 PM AWST) |
+| Summarise | 22:30, 10:30 (30 min after fetch) |
+| Daily digest | 23:00 (7 AM AWST) |
 
 ---
 

@@ -11,7 +11,7 @@ export const maxDuration = 60; // 60 second timeout for Cloud Run
  * CRON endpoint to summarise pending articles.
  * Protected by CRON_SECRET.
  * 
- * Schedule: Hourly (0 * * * *)
+ * Schedule: Twice daily at 6:30 AM / 6:30 PM AWST (30 22,10 * * * UTC)
  */
 export async function POST(request: Request) {
     // Verify CRON secret

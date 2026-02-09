@@ -12,7 +12,7 @@ export const maxDuration = 120; // 2 minute timeout for TTS generation
  * CRON endpoint to generate daily "Today in AI" digest.
  * Protected by CRON_SECRET.
  * 
- * Schedule: Daily at 6 AM AWST (0 22 * * * UTC)
+ * Schedule: Daily at 7 AM AWST (0 23 * * * UTC)
  */
 export async function POST(request: Request) {
     // Verify CRON secret

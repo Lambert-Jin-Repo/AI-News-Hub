@@ -35,9 +35,9 @@ git push origin main
 
 | Job | Schedule (UTC) | Endpoint |
 |-----|----------------|----------|
-| Fetch news | 00:00, 12:00 | `/api/jobs/fetch-news` |
-| Summarise | 00:30, 12:30 | `/api/jobs/summarise` |
-| Daily digest | 00:00 | `/api/jobs/daily-digest` |
+| Fetch news | 22:00, 10:00 (6 AM / 6 PM AWST) | `/api/jobs/fetch-news` |
+| Summarise | 22:30, 10:30 (30 min after fetch) | `/api/jobs/summarise` |
+| Daily digest | 23:00 (7 AM AWST) | `/api/jobs/daily-digest` |
 
 ---
 

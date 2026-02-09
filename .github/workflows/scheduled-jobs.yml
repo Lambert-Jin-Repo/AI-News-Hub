@@ -2,12 +2,12 @@ name: Scheduled Jobs
 
 on:
   schedule:
-    # Fetch news every 12 hours (UTC: 00:00, 12:00)
-    - cron: "0 0,12 * * *"
-    # Summarise 30 min after each fetch (UTC: 00:30, 12:30)
-    - cron: "30 0,12 * * *"
-    # Generate daily digest at 00:00 UTC (08:00 AWST)
-    - cron: "0 0 * * *"
+    # Fetch news every 12 hours at 6 AM / 6 PM AWST (UTC: 22:00, 10:00)
+    - cron: "0 22,10 * * *"
+    # Summarise 30 min after each fetch (UTC: 22:30, 10:30)
+    - cron: "30 22,10 * * *"
+    # Generate daily digest at 23:00 UTC (07:00 AWST)
+    - cron: "0 23 * * *"
   workflow_dispatch:
     inputs:
       job:
@@ -23,7 +23,7 @@ jobs:
   fetch-news:
     if: >
       github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'fetch-news' ||
-      github.event_name == 'schedule' && github.event.schedule == '0 0,12 * * *'
+      github.event_name == 'schedule' && github.event.schedule == '0 22,10 * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger fetch-news
@@ -35,7 +35,7 @@ jobs:
   summarise:
     if: >
       github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'summarise' ||
-      github.event_name == 'schedule' && github.event.schedule == '30 0,12 * * *'
+      github.event_name == 'schedule' && github.event.schedule == '30 22,10 * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger summarise
@@ -47,7 +47,7 @@ jobs:
   daily-digest:
     if: >
       github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'daily-digest' ||
-      github.event_name == 'schedule' && github.event.schedule == '0 0 * * *'
+      github.event_name == 'schedule' && github.event.schedule == '0 23 * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger daily-digest
