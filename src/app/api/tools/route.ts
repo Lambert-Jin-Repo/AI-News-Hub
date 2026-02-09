@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { PRICING_MODEL, type PricingModel } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_PRICING = new Set<string>(Object.values(PRICING_MODEL));
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const q = searchParams.get('q')?.trim() || '';
   const category = searchParams.get('category')?.trim() || '';
-  const pricing = searchParams.get('pricing')?.trim() || '';
+  const pricingParam = searchParams.get('pricing')?.trim() || '';
   const cursor = searchParams.get('cursor') || '';
   const limitParam = Number(searchParams.get('limit') || 24);
   const limit = Math.min(Math.max(limitParam, 1), 50);
+
+  // Validate pricing model against known values
+  if (pricingParam && !VALID_PRICING.has(pricingParam)) {
+    return NextResponse.json(
+      { error: `Invalid pricing. Must be one of: ${[...VALID_PRICING].join(', ')}` },
+      { status: 400 },
+    );
+  }
+  const pricing: PricingModel | '' = pricingParam as PricingModel | '';
+
+  // Validate cursor format (ISO date string)
+  if (cursor && !ISO_DATE_RE.test(cursor)) {
+    return NextResponse.json(
+      { error: 'Invalid cursor format. Must be an ISO date string.' },
+      { status: 400 },
+    );
+  }
 
   let query = supabase
     .from('tools')

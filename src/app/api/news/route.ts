@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { ARTICLE_CATEGORY, type ArticleCategory } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_CATEGORIES = new Set<string>(Object.values(ARTICLE_CATEGORY));
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const q = searchParams.get('q')?.trim() || '';
   const source = searchParams.get('source')?.trim() || '';
-  const category = searchParams.get('category')?.trim() || '';
+  const categoryParam = searchParams.get('category')?.trim() || '';
   const cursor = searchParams.get('cursor') || '';
   const limitParam = Number(searchParams.get('limit') || 20);
   const limit = Math.min(Math.max(limitParam, 1), 50);
+
+  // Validate category against known values
+  if (categoryParam && !VALID_CATEGORIES.has(categoryParam)) {
+    return NextResponse.json(
+      { error: `Invalid category. Must be one of: ${[...VALID_CATEGORIES].join(', ')}` },
+      { status: 400 },
+    );
+  }
+  const category: ArticleCategory | '' = categoryParam as ArticleCategory | '';
+
+  // Validate cursor format (ISO date string)
+  if (cursor && !ISO_DATE_RE.test(cursor)) {
+    return NextResponse.json(
+      { error: 'Invalid cursor format. Must be an ISO date string.' },
+      { status: 400 },
+    );
+  }
 
   let query = supabase
     .from('articles')

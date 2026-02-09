@@ -3,6 +3,7 @@ import { DAILY_DIGEST_PROMPT, AUDIO_SCRIPT_PROMPT, buildDailyDigestInput, buildA
 import { generateSpeech } from './tts-client';
 import { getAdminClient } from './supabase';
 import { ON_TOPIC_CATEGORIES } from './constants';
+import { AppError, ErrorCode } from './errors';
 
 export interface DigestResult {
     digestId: string | null;
@@ -33,7 +34,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
         .single();
 
     if (existing) {
-        throw new Error(`Digest already exists for ${today}`);
+        throw new AppError(`Digest already exists for ${today}`, ErrorCode.DIGEST_EXISTS);
     }
 
     // Fetch on-topic articles from last 24 hours with completed summaries
@@ -74,7 +75,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
 
     // Generate sectioned summary
     const digestInput = buildDailyDigestInput(articles);
-    const llmResponse = await generateText(DAILY_DIGEST_PROMPT, digestInput);
+    const llmResponse = await generateText(DAILY_DIGEST_PROMPT, digestInput, { maxTokens: 2048 });
     const summaryText = llmResponse.text;
 
     // Insert digest first (with pending audio status)
@@ -98,7 +99,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
     try {
         // Generate conversational podcast script for TTS (separate from written digest)
         const audioScriptInput = buildAudioScriptInput(summaryText);
-        const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput);
+        const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048 });
         const audioScript = audioScriptResponse.text;
 
         // Use audioScript (not summaryText) for TTS
@@ -130,7 +131,8 @@ export async function generateDailyDigest(): Promise<DigestResult> {
             .update({ audio_url: audioUrl, audio_status: 'completed' })
             .eq('id', digest.id);
     } catch (audioError) {
-        console.error('TTS generation failed:', audioError);
+        const { logger } = await import('./logger');
+        logger.error('TTS generation failed', audioError instanceof Error ? audioError : null, { digestId: digest.id });
         // Update audio status to failed
         await supabase
             .from('daily_digests')
@@ -172,7 +174,7 @@ export async function retryDigestAudio(digestId: string): Promise<string | null>
 
     // Generate podcast script for retry too
     const audioScriptInput = buildAudioScriptInput(digest.summary_text);
-    const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput);
+    const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048 });
     const audioScript = audioScriptResponse.text;
 
     const { audioBuffer, contentType } = await generateSpeech(audioScript);

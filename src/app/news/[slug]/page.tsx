@@ -83,8 +83,27 @@ export default async function ArticleDetailPage({
     : null;
   const summaryStatus = article.summary_status as SummaryStatus;
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    datePublished: article.published_at || undefined,
+    description: article.ai_summary || article.raw_excerpt || undefined,
+    image: article.thumbnail_url || undefined,
+    author: { "@type": "Organization", name: article.source || "Unknown" },
+    publisher: { "@type": "Organization", name: "AI News Hub" },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `/news/${article.slug}`,
+    },
+  };
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       {/* Back link */}
       <div className="flex items-center justify-between mb-8">
         <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-0" />

@@ -28,7 +28,8 @@ export async function POST(request: Request) {
             message: `Processed ${result.processed} articles: ${result.completed} completed, ${result.failed} failed`,
         });
     } catch (error) {
-        console.error('Summarisation job failed:', error);
+        const { logger } = await import('@/lib/logger');
+        logger.error('Summarisation job failed', error instanceof Error ? error : null);
         return NextResponse.json(
             {
                 error: 'Summarisation job failed',
@@ -39,7 +40,4 @@ export async function POST(request: Request) {
     }
 }
 
-// Also support GET for manual testing
-export async function GET(request: Request) {
-    return POST(request);
-}
+// GET removed — CRON jobs must use POST to prevent accidental triggering by browsers/crawlers

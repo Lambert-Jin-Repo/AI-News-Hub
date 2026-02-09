@@ -133,7 +133,8 @@ export async function POST(request: Request) {
             skipped++;
           } else {
             skipped++;
-            console.error(`Insert error for "${article.title}":`, insertError.message);
+            const { logger } = await import('@/lib/logger');
+            logger.warn('Article insert failed', { title: article.title, error: insertError.message });
           }
         } else {
           inserted++;
@@ -169,7 +170,8 @@ export async function POST(request: Request) {
       results,
     });
   } catch (err) {
-    console.error('Fetch job failed:', err);
+    const { logger } = await import('@/lib/logger');
+    logger.error('Fetch job failed', err instanceof Error ? err : null);
     return errorResponse(
       err instanceof Error ? err.message : 'Internal error',
     );

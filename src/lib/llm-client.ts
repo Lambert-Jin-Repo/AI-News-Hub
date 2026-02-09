@@ -1,15 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
+import { AppError, ErrorCode } from './errors';
 
 export interface LLMResponse {
   text: string;
   provider: 'gemini' | 'groq';
 }
 
-export interface LLMError {
-  provider: 'gemini' | 'groq';
-  message: string;
-  isSafetyBlock: boolean;
+export interface GenerateTextOptions {
+  maxTokens?: number;
 }
 
 /**
@@ -42,7 +41,7 @@ async function callGemini(
   userPrompt: string,
 ): Promise<LLMResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
+  if (!apiKey) throw new AppError('GEMINI_API_KEY is not set', ErrorCode.CONFIG_MISSING);
 
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -58,14 +57,9 @@ async function callGemini(
   if (!text) {
     const blockReason = response.candidates?.[0]?.finishReason;
     if (blockReason === 'SAFETY') {
-      const error: LLMError = {
-        provider: 'gemini',
-        message: 'Content blocked by Gemini safety filters',
-        isSafetyBlock: true,
-      };
-      throw error;
+      throw new AppError('Content blocked by Gemini safety filters', ErrorCode.SAFETY_BLOCK);
     }
-    throw new Error('Gemini returned empty response');
+    throw new AppError('Gemini returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
   }
 
   return { text, provider: 'gemini' };
@@ -77,9 +71,10 @@ async function callGemini(
 async function callGroq(
   systemPrompt: string,
   userPrompt: string,
+  maxTokens: number,
 ): Promise<LLMResponse> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY is not set');
+  if (!apiKey) throw new AppError('GROQ_API_KEY is not set', ErrorCode.CONFIG_MISSING);
 
   const groq = new Groq({ apiKey });
   const completion = await groq.chat.completions.create({
@@ -89,13 +84,21 @@ async function callGroq(
       { role: 'user', content: userPrompt },
     ],
     temperature: 0.3,
-    max_tokens: 1024,
+    max_tokens: maxTokens,
   });
 
   const text = completion.choices[0]?.message?.content;
-  if (!text) throw new Error('Groq returned empty response');
+  if (!text) throw new AppError('Groq returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
 
   return { text, provider: 'groq' };
+}
+
+/**
+ * Detect quota/rate-limit errors from provider error messages.
+ */
+function isQuotaOrRateError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return msg.includes('quota') || msg.includes('rate') || msg.includes('429') || msg.includes('resource_exhausted');
 }
 
 /**
@@ -103,13 +106,16 @@ async function callGroq(
  *
  * @param taskPrompt - The instruction describing what the model should do
  * @param userContent - The untrusted content to process (will be wrapped)
+ * @param options - Optional configuration (e.g. maxTokens for Groq fallback)
  * @returns LLMResponse with text and provider used
- * @throws LLMError if both providers fail (isSafetyBlock = true if Gemini blocked for safety)
+ * @throws AppError with typed error code
  */
 export async function generateText(
   taskPrompt: string,
   userContent: string,
+  options: GenerateTextOptions = {},
 ): Promise<LLMResponse> {
+  const { maxTokens = 1024 } = options;
   const systemPrompt = buildSystemPrompt(taskPrompt);
   const wrappedContent = wrapUserContent(userContent);
 
@@ -118,25 +124,33 @@ export async function generateText(
     return await callGemini(systemPrompt, wrappedContent);
   } catch (geminiError) {
     // If it's a safety block, propagate immediately — Groq may also block
-    if (
-      typeof geminiError === 'object' &&
-      geminiError !== null &&
-      'isSafetyBlock' in geminiError &&
-      (geminiError as LLMError).isSafetyBlock
-    ) {
+    if (AppError.isSafetyBlock(geminiError)) {
       throw geminiError;
+    }
+
+    // Wrap quota/rate errors with proper code before trying fallback
+    if (isQuotaOrRateError(geminiError)) {
+      // Still try Groq as fallback
     }
 
     // Try Groq as fallback
     try {
-      return await callGroq(systemPrompt, wrappedContent);
+      return await callGroq(systemPrompt, wrappedContent, maxTokens);
     } catch (groqError) {
-      const error: LLMError = {
-        provider: 'groq',
-        message: `Both providers failed. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
-        isSafetyBlock: false,
-      };
-      throw error;
+      // If either was a quota/rate error, surface that code
+      if (isQuotaOrRateError(geminiError) || isQuotaOrRateError(groqError)) {
+        throw new AppError(
+          `Both providers hit quota/rate limits. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+          ErrorCode.QUOTA_EXCEEDED,
+          { isRetryable: true },
+        );
+      }
+
+      throw new AppError(
+        `Both providers failed. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+        ErrorCode.LLM_BOTH_FAILED,
+        { isRetryable: true },
+      );
     }
   }
 }

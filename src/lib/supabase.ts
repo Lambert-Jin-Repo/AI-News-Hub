@@ -4,6 +4,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // TypeScript interfaces matching the database schema
 // ---------------------------------------------------------------------------
 
+export interface ArticleMetadata {
+  relevance_score?: number;
+  tech_stack?: string[];
+  key_points?: string[];
+  provider?: string;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -19,7 +26,7 @@ export interface Article {
   is_featured: boolean;
   is_archived: boolean;
   category: string | null;
-  ai_metadata: Record<string, unknown> | null;
+  ai_metadata: ArticleMetadata | null;
 }
 
 export interface DailyDigest {

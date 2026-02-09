@@ -1,8 +1,9 @@
 import pLimit from 'p-limit';
-import { generateText, LLMError } from './llm-client';
+import { generateText } from './llm-client';
 import { ARTICLE_SUMMARY_PROMPT, buildArticleSummaryInput } from './prompts';
-import { getAdminClient } from './supabase';
+import { getAdminClient, type ArticleMetadata } from './supabase';
 import { RELEVANCE_THRESHOLD } from './constants';
+import { AppError } from './errors';
 
 // Minimal article fields needed for summarisation
 type ArticleForSummary = {
@@ -17,7 +18,7 @@ export type SummarisationResult = {
     status: 'completed' | 'failed_safety' | 'failed_quota' | 'skipped';
     summary?: string;
     category?: string;
-    metadata?: Record<string, unknown>;
+    metadata?: ArticleMetadata;
     error?: string;
 };
 
@@ -73,6 +74,15 @@ function formatSummaryMarkdown(parsed: ArticleLLMResponse): string {
  * Parses JSON response to extract classification, relevance, and structured summary.
  */
 async function summariseArticle(article: ArticleForSummary): Promise<SummarisationResult> {
+    // Skip articles with no excerpt and no meaningful content for the LLM
+    if (!article.raw_excerpt?.trim()) {
+        return {
+            id: article.id,
+            status: 'skipped',
+            error: 'No excerpt available for summarisation',
+        };
+    }
+
     try {
         const input = buildArticleSummaryInput({
             title: article.title,
@@ -117,13 +127,7 @@ async function summariseArticle(article: ArticleForSummary): Promise<Summarisati
             summary: response.text,
         };
     } catch (error) {
-        // Check for safety block
-        if (
-            typeof error === 'object' &&
-            error !== null &&
-            'isSafetyBlock' in error &&
-            (error as LLMError).isSafetyBlock
-        ) {
+        if (AppError.isSafetyBlock(error)) {
             return {
                 id: article.id,
                 status: 'failed_safety',
@@ -131,20 +135,18 @@ async function summariseArticle(article: ArticleForSummary): Promise<Summarisati
             };
         }
 
-        // Check for quota error
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('rate')) {
+        if (AppError.isQuotaOrRateLimit(error)) {
             return {
                 id: article.id,
                 status: 'failed_quota',
-                error: errorMessage,
+                error: error instanceof Error ? error.message : String(error),
             };
         }
 
         return {
             id: article.id,
             status: 'skipped',
-            error: errorMessage,
+            error: error instanceof Error ? error.message : String(error),
         };
     }
 }

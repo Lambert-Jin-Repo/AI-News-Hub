@@ -26,5 +26,11 @@ export function stripHtml(dirty: string): string {
 export function sanitizeText(dirty: string, maxLength = 2000): string {
   const clean = stripHtml(dirty).trim();
   if (clean.length <= maxLength) return clean;
-  return clean.slice(0, maxLength);
+  // Break on word boundary to avoid cutting mid-word
+  const truncated = clean.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > maxLength * 0.8) {
+    return truncated.slice(0, lastSpace);
+  }
+  return truncated;
 }
