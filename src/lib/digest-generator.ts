@@ -1,22 +1,25 @@
 import { generateText } from './llm-client';
-import { DAILY_DIGEST_PROMPT, buildDailyDigestInput } from './prompts';
+import { DAILY_DIGEST_PROMPT, AUDIO_SCRIPT_PROMPT, buildDailyDigestInput, buildAudioScriptInput } from './prompts';
 import { generateSpeech } from './tts-client';
 import { getAdminClient } from './supabase';
+import { ON_TOPIC_CATEGORIES } from './constants';
 
 export interface DigestResult {
-    digestId: string;
-    summaryText: string;
+    digestId: string | null;
+    summaryText: string | null;
     audioUrl: string | null;
     articleCount: number;
+    skipped?: boolean;
 }
 
 /**
  * Generate the daily "Today in AI" digest.
- * 1. Fetch top articles from the last 24 hours
- * 2. Generate narrative summary via LLM
- * 3. Generate audio via TTS
- * 4. Upload audio to Supabase Storage
- * 5. Insert record into daily_digests table
+ * 1. Fetch top on-topic articles from the last 24 hours (expand to 48h if low volume)
+ * 2. Generate sectioned summary via LLM
+ * 3. Generate podcast-style audio script via LLM
+ * 4. Generate audio via TTS
+ * 5. Upload audio to Supabase Storage
+ * 6. Insert record into daily_digests table
  */
 export async function generateDailyDigest(): Promise<DigestResult> {
     const supabase = getAdminClient();
@@ -33,13 +36,13 @@ export async function generateDailyDigest(): Promise<DigestResult> {
         throw new Error(`Digest already exists for ${today}`);
     }
 
-    // Fetch top articles from last 24 hours with completed summaries
-    // Use published_at for freshness (with null check), fallback to fetched_at
+    // Fetch on-topic articles from last 24 hours with completed summaries
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: articles, error: fetchError } = await supabase
+    let { data: articles, error: fetchError } = await supabase
         .from('articles')
-        .select('id, title, ai_summary, source, published_at')
+        .select('id, title, ai_summary, source, published_at, category')
         .eq('summary_status', 'completed')
+        .in('category', ON_TOPIC_CATEGORIES)
         .or(`published_at.gte.${yesterday},and(published_at.is.null,fetched_at.gte.${yesterday})`)
         .order('is_featured', { ascending: false })
         .order('published_at', { ascending: false, nullsFirst: false })
@@ -49,11 +52,26 @@ export async function generateDailyDigest(): Promise<DigestResult> {
         throw new Error(`Failed to fetch articles: ${fetchError.message}`);
     }
 
-    if (!articles || articles.length === 0) {
-        throw new Error('No summarised articles available for digest');
+    // Low-volume handling: expand lookback to 48h
+    if (!articles || articles.length < 3) {
+        const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: expandedArticles } = await supabase
+            .from('articles')
+            .select('id, title, ai_summary, source, published_at, category')
+            .eq('summary_status', 'completed')
+            .in('category', ON_TOPIC_CATEGORIES)
+            .or(`published_at.gte.${twoDaysAgo},and(published_at.is.null,fetched_at.gte.${twoDaysAgo})`)
+            .order('published_at', { ascending: false, nullsFirst: false })
+            .limit(10);
+
+        if (!expandedArticles || expandedArticles.length < 3) {
+            // Skip digest for today — not enough content
+            return { digestId: null, summaryText: null, audioUrl: null, articleCount: 0, skipped: true };
+        }
+        articles = expandedArticles;
     }
 
-    // Generate narrative summary
+    // Generate sectioned summary
     const digestInput = buildDailyDigestInput(articles);
     const llmResponse = await generateText(DAILY_DIGEST_PROMPT, digestInput);
     const summaryText = llmResponse.text;
@@ -74,10 +92,16 @@ export async function generateDailyDigest(): Promise<DigestResult> {
         throw new Error(`Failed to create digest: ${insertError?.message}`);
     }
 
-    // Generate TTS audio
+    // Generate TTS audio using podcast-style script
     let audioUrl: string | null = null;
     try {
-        const { audioBuffer, contentType } = await generateSpeech(summaryText);
+        // Generate conversational podcast script for TTS (separate from written digest)
+        const audioScriptInput = buildAudioScriptInput(summaryText);
+        const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput);
+        const audioScript = audioScriptResponse.text;
+
+        // Use audioScript (not summaryText) for TTS
+        const { audioBuffer, contentType } = await generateSpeech(audioScript);
 
         // Upload to Supabase Storage
         const fileName = `digest-${today}.mp3`;
@@ -145,7 +169,12 @@ export async function retryDigestAudio(digestId: string): Promise<string | null>
         throw new Error('No summary text available for TTS');
     }
 
-    const { audioBuffer, contentType } = await generateSpeech(digest.summary_text);
+    // Generate podcast script for retry too
+    const audioScriptInput = buildAudioScriptInput(digest.summary_text);
+    const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput);
+    const audioScript = audioScriptResponse.text;
+
+    const { audioBuffer, contentType } = await generateSpeech(audioScript);
     const fileName = `digest-${digest.digest_date}.mp3`;
 
     const { error: uploadError } = await supabase.storage
