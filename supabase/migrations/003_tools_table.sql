@@ -16,14 +16,26 @@ CREATE TABLE IF NOT EXISTS tools (
   needs_review     BOOLEAN DEFAULT false,
   last_checked_at  TIMESTAMPTZ,
   check_fail_count INTEGER DEFAULT 0,
-  search_vector    TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
-      coalesce(name, '') || ' ' ||
-      coalesce(description, '') || ' ' ||
-      coalesce(array_to_string(tags, ' '), '')
-    )
-  ) STORED
+  search_vector    TSVECTOR
 );
+
+-- Trigger function to update search_vector
+CREATE OR REPLACE FUNCTION tools_search_vector_update() RETURNS trigger AS $$
+BEGIN
+  NEW.search_vector := to_tsvector('english',
+    coalesce(NEW.name, '') || ' ' ||
+    coalesce(NEW.description, '') || ' ' ||
+    coalesce(array_to_string(NEW.tags, ' '), '')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger on insert/update
+DROP TRIGGER IF EXISTS tools_search_vector_trigger ON tools;
+CREATE TRIGGER tools_search_vector_trigger
+  BEFORE INSERT OR UPDATE ON tools
+  FOR EACH ROW EXECUTE FUNCTION tools_search_vector_update();
 
 -- Full-text search index
 CREATE INDEX IF NOT EXISTS idx_tools_search ON tools USING GIN (search_vector);

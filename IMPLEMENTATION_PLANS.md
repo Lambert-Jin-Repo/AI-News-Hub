@@ -12,12 +12,12 @@
 
 | Phase | Plan | Status | Link |
 |-------|------|--------|------|
-| 0.1 | Infrastructure Setup | Ready | [Jump](#phase-01-infrastructure-setup) |
-| 0.2 | Database & Supabase | Ready | [Jump](#phase-02-database--supabase-setup) |
+| 0.1 | Infrastructure Setup | ✅ Complete | [Jump](#phase-01-infrastructure-setup) |
+| 0.2 | Database & Supabase | ✅ Complete | [Jump](#phase-02-database--supabase-setup) |
 | 0.3 | Core UI Components | ✅ Complete | [Jump](#phase-03-core-ui-components) |
-| 0.4 | Utility Functions | Ready | [Jump](#phase-04-utility-functions) |
-| 1.1 | News Fetching Pipeline | Pending Phase 0 | [Jump](#phase-11-news-fetching-pipeline) |
-| 1.2 | News Display Pages | Pending Phase 0 | [Jump](#phase-12-news-display-pages) |
+| 0.4 | Utility Functions | ✅ Complete | [Jump](#phase-04-utility-functions) |
+| 1.1 | News Fetching Pipeline | Ready | [Jump](#phase-11-news-fetching-pipeline) |
+| 1.2 | News Display Pages | Ready | [Jump](#phase-12-news-display-pages) |
 | 2.1 | LLM Summarisation | Pending Phase 1 | [Jump](#phase-21-llm-summarisation) |
 | 2.2 | Daily Digest | Pending Phase 1 | [Jump](#phase-22-daily-digest) |
 | 3.1 | TTS Audio Generation | Pending Phase 2 | [Jump](#phase-31-tts-audio-generation) |
@@ -1885,11 +1885,233 @@ git push -u origin feature/phase0-utilities
 
 # Phase 1: News Fetching & Display
 
+**Branch:** `feature/phase1-news`
+**Estimated Time:** 6-8 hours
+**Prerequisites:** Phase 0 complete, Supabase project created, `.env.local` configured
 
-*(Plans to be detailed after Phase 0 completion)*
+## Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| RSS library | `rss-parser` | Most popular, TypeScript types, RSS 2.0 + Atom |
+| API source | GNews (free tier) | 100 req/day, good coverage, simple API |
+| Pagination | Cursor-based (`published_at`) | Industry standard for feeds, no duplicates on insert |
+| Env var naming | 2025+ (`PUBLISHABLE_KEY` / `SECRET_KEY`) | Forward-compatible with Supabase |
+| Homepage | Leave for Phase 2 | Needs daily digest data |
+| Slug strategy | Stored column, generated on insert | Indexed for fast lookups, SEO-friendly |
 
 ## Phase 1.1: News Fetching Pipeline
+
+**Branch:** `feature/phase1-news`
+**Prerequisites:** Phase 0 complete
+
+### Overview
+
+Build the automated news ingestion pipeline. GitHub Actions triggers `POST /api/jobs/fetch-news` every 6 hours. The endpoint queries the `sources` table, fetches from each active source (RSS or GNews API), sanitises content, deduplicates by URL, and inserts articles with `summary_status = 'pending'`.
+
+### Dependencies to install
+
+```bash
+npm install rss-parser
+```
+
+### Database migration
+
+**File:** `supabase/migrations/005_add_slug_and_seed_sources.sql`
+
+Changes:
+1. Add `slug TEXT UNIQUE` column to `articles` table
+2. Add B-tree index on `slug`
+3. Seed initial sources into `sources` table (3 RSS + 1 GNews API)
+
+**User action:** Run this SQL in Supabase SQL Editor after code is committed.
+
+### Env var changes
+
+**Files to update:** `.env.example`, `src/app/api/health/route.ts`
+
+Reconcile all env vars to 2025+ Supabase naming:
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_KEY` → `SUPABASE_SECRET_KEY`
+- Add `GNEWS_API_KEY=your-gnews-api-key-here`
+
+### Files to create
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/005_add_slug_and_seed_sources.sql` | Slug column + source seeds |
+| `src/lib/fetchers/rss-fetcher.ts` | Parse RSS feeds, return normalised articles |
+| `src/lib/fetchers/gnews-fetcher.ts` | GNews API client, return normalised articles |
+| `src/app/api/jobs/fetch-news/route.ts` | POST endpoint: auth, fetch all sources, deduplicate, insert |
+| `src/lib/__tests__/rss-fetcher.test.ts` | Unit tests with mocked XML |
+| `src/lib/__tests__/gnews-fetcher.test.ts` | Unit tests with mocked API responses |
+
+### Files to modify
+
+| File | Change |
+|------|--------|
+| `.env.example` | Add `GNEWS_API_KEY`, fix Supabase key names |
+| `src/app/api/health/route.ts` | Fix env var name to `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
+
+### Architecture
+
+```
+GitHub Actions (every 6h)
+  │
+  ▼
+POST /api/jobs/fetch-news
+  │
+  ├── verifyCronAuth(request)
+  │
+  ├── SELECT * FROM sources WHERE is_active = TRUE
+  │
+  ├── For each source:
+  │   ├── type = 'rss' → rssFetcher(config.url)
+  │   └── type = 'api' → gnewsFetcher(config)
+  │
+  ├── Sanitise all fields (sanitizeText)
+  ├── Generate slug from title (slugify)
+  │
+  ├── INSERT INTO articles ... ON CONFLICT (url) DO NOTHING
+  │   (deduplication via UNIQUE constraint)
+  │
+  └── Return { inserted, skipped, errors }
+```
+
+### Normalised article shape (internal)
+
+```typescript
+interface FetchedArticle {
+  title: string;
+  url: string;
+  source: string;
+  published_at: string | null;
+  thumbnail_url: string | null;
+  raw_excerpt: string | null;
+  slug: string;
+}
+```
+
+### GNews API budget
+
+- Free tier: 100 requests/day
+- Fetch frequency: 4 cycles/day (every 6 hours)
+- Requests per cycle: 1 (search endpoint, max 10 results)
+- Daily usage: **4 requests/day** (4% of limit)
+- Endpoint: `GET https://gnews.io/api/v4/search?q=artificial+intelligence&lang=en&max=10&token=KEY`
+
+### RSS feed sources (seeded)
+
+| Source | Feed URL | Notes |
+|--------|----------|-------|
+| TechCrunch AI | `https://techcrunch.com/category/artificial-intelligence/feed/` | No thumbnails in feed |
+| The Verge AI | `https://www.theverge.com/rss/ai-artificial-intelligence/index.xml` | Atom format |
+| Ars Technica | `https://feeds.arstechnica.com/arstechnica/technology-lab` | General tech, includes AI |
+
+### Error handling
+
+- RSS feed unreachable → log error, update `sources.last_error`, continue to next source
+- GNews API error/rate limit → log error, continue
+- DB insert conflict (duplicate URL) → skip silently (expected behaviour)
+- Any source failure does NOT block other sources
+
+### Commits (atomic)
+
+1. `fix: reconcile env vars to 2025+ Supabase naming`
+2. `feat(db): add slug column and seed news sources`
+3. `feat(lib): add RSS feed fetcher`
+4. `feat(lib): add GNews API fetcher`
+5. `feat(api): add fetch-news job endpoint`
+6. `test(lib): add tests for RSS and GNews fetchers`
+
+---
+
 ## Phase 1.2: News Display Pages
+
+**Branch:** `feature/phase1-news` (continues from 1.1)
+**Prerequisites:** Phase 1.1 complete
+
+### Overview
+
+Build the public-facing news pages: `/news` (feed listing with search and filter), `/news/[slug]` (article detail), and the `/api/news` search endpoint. Update existing components to use Phase 0 utilities properly.
+
+### Files to create
+
+| File | Purpose |
+|------|---------|
+| `src/app/news/page.tsx` | News feed: article list, search, filter, cursor pagination |
+| `src/app/news/[slug]/page.tsx` | Article detail: full content, link to original, related articles |
+| `src/app/api/news/route.ts` | GET: search/filter/paginate articles |
+
+### Files to modify
+
+| File | Change |
+|------|--------|
+| `src/components/cards/NewsCard.tsx` | Use SafeImage instead of raw `<img>`, import `formatRelativeTime` from `formatters.ts` |
+
+### API endpoint: `GET /api/news`
+
+**Query parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `q` | string | — | Full-text search query |
+| `source` | string | — | Filter by source name |
+| `cursor` | ISO string | — | Articles before this `published_at` value |
+| `limit` | number | 20 | Results per page (max 50) |
+
+**Response:**
+
+```json
+{
+  "articles": [...],
+  "nextCursor": "2026-02-08T10:00:00Z" | null
+}
+```
+
+**Cursor pagination flow:**
+1. First request: `GET /api/news?limit=20` → returns articles + `nextCursor`
+2. Next page: `GET /api/news?limit=20&cursor=2026-02-08T10:00:00Z`
+3. When `nextCursor` is `null`, no more pages
+
+**Full-text search:**
+```typescript
+// Supabase textSearch on tsvector column
+query.textSearch('search_vector', searchQuery, { type: 'websearch' })
+```
+
+**Cache:** `Cache-Control: s-maxage=300` (5 minutes)
+
+### Page: `/news`
+
+- Server component that fetches initial 20 articles
+- Client-side search/filter bar updates via API calls
+- FilterBar with source tabs (populated from distinct sources in data)
+- SearchInput with debounce → `/api/news?q=...`
+- "Load more" button for cursor pagination
+- Cache: `s-maxage=3600`
+
+### Page: `/news/[slug]`
+
+- Server component, fetches article by slug
+- Full article display: title, source, date, thumbnail (SafeImage), excerpt/summary
+- "Read Original Article" link → external URL
+- "Related Articles" section: 3 articles from same source
+- 404 if slug not found
+- Cache: `s-maxage=3600`
+
+### NewsCard improvements
+
+- Replace raw `<img>` (line 66) with SafeImage component
+- Delete local `formatRelativeTime` function (lines 22-38), import from `@/lib/formatters`
+- Delete local `SummaryStatus` type, import from `@/lib/constants`
+
+### Commits (atomic)
+
+7. `refactor(NewsCard): use SafeImage and shared formatters`
+8. `feat(api): add news search and filter endpoint`
+9. `feat(pages): add news feed page with search and pagination`
+10. `feat(pages): add article detail page`
 
 ---
 

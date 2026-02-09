@@ -7,6 +7,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 export interface Article {
   id: string;
   title: string;
+  slug: string | null;
   url: string;
   source: string | null;
   published_at: string | null;
@@ -74,23 +75,25 @@ export interface Database {
 // ---------------------------------------------------------------------------
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// New key format (2025+): sb_publishable_... replaces legacy anon key
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 /**
- * Public (anon) Supabase client — respects RLS policies.
+ * Public Supabase client — respects RLS policies.
  * Use for read operations from the frontend or public API routes.
  */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabasePublishableKey);
 
 /**
  * Admin Supabase client — bypasses RLS.
  * Use only in server-side cron jobs and admin operations.
- * Only available when SUPABASE_SERVICE_KEY is set.
+ * Only available when SUPABASE_SECRET_KEY is set.
  */
 export function getAdminClient(): SupabaseClient {
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-  if (!serviceKey) {
-    throw new Error('SUPABASE_SERVICE_KEY is not set — admin client unavailable');
+  // New key format (2025+): sb_secret_... replaces legacy service_role key
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('SUPABASE_SECRET_KEY is not set — admin client unavailable');
   }
-  return createClient(supabaseUrl, serviceKey);
+  return createClient(supabaseUrl, secretKey);
 }
