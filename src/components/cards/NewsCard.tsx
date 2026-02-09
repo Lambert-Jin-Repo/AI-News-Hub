@@ -34,8 +34,9 @@ export function NewsCard({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={`Read article: ${title}`}
       className={cn(
-        "bg-[var(--surface)] rounded-[16px] p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 flex gap-5 group cursor-pointer border border-transparent hover:border-primary/20 no-underline",
+        "bg-[var(--surface)] rounded-[16px] p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 flex gap-5 group cursor-pointer border border-transparent hover:border-primary/20 no-underline focus:outline-none focus:ring-2 focus:ring-primary/50",
         className
       )}
     >
