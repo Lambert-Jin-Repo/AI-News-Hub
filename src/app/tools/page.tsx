@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { DEFAULTS } from "@/lib/constants";
 import { ToolsFeed } from "./tools-feed";
+import { BackToHome } from "@/components/ui/BackToHome";
 
 export const revalidate = 3600;
 
@@ -43,9 +44,12 @@ export default async function ToolsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-[#0d1b1a] dark:text-white">
-        AI Tools Directory
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
+          AI Tools Directory
+        </h1>
+        <BackToHome variant="icon" />
+      </div>
       <ToolsFeed initialTools={tools} categories={categories} />
     </main>
   );

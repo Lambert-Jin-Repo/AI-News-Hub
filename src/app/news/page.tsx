@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { NewsFeed } from "./news-feed";
+import { BackToHome } from "@/components/ui/BackToHome";
 
 export const revalidate = 3600;
 
@@ -39,9 +40,12 @@ export default async function NewsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-[#0d1b1a] dark:text-white">
-        AI News
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
+          AI News
+        </h1>
+        <BackToHome variant="icon" />
+      </div>
       <NewsFeed initialArticles={articles} sources={sources} />
     </main>
   );

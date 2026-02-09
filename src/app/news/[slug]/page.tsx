@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, ExternalLink, Clock } from "lucide-react";
+import { ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { BackToHome } from "@/components/ui/BackToHome";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { SummaryStatus } from "@/lib/constants";
 
@@ -78,13 +79,10 @@ export default async function ArticleDetailPage({
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       {/* Back link */}
-      <Link
-        href="/news"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors mb-6 no-underline"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to News
-      </Link>
+      <div className="flex items-center justify-between mb-8">
+        <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-0" />
+        <BackToHome variant="icon" />
+      </div>
 
       {/* Article header */}
       <article>

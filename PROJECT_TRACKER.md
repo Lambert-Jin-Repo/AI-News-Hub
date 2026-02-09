@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-02-09
-**Status:** ✅ Phase 1 Complete
+**Status:** ✅ Phase 3 Complete
 
 ---
 
@@ -57,8 +57,8 @@
 |-------|------|----------|--------|--------------|
 | 0 | Environment & Guardrails | Week 1 | ✅ Complete | None |
 | 1 | News Fetching & Display | Weeks 2-3 | ✅ Complete | Phase 0 |
-| 2 | AI Summaries | Weeks 4-5 | ⏳ Not Started | Phase 1 |
-| 3 | Audio & Directory | Weeks 6-7 | ⏳ Not Started | Phase 2 |
+| 2 | AI Summaries | Weeks 4-5 | ✅ Complete | Phase 1 |
+| 3 | Homepage, Tools & Tests | Weeks 6-7 | ✅ Complete | Phase 2 |
 | 4 | Polish & Launch | Weeks 8-9 | ⏳ Not Started | Phase 3 |
 
 **Status Legend:**
@@ -70,14 +70,14 @@
 
 ---
 
-## Current Sprint: Phase 2 — AI Summaries
+## Current Sprint: Phase 3 — Audio & Directory
 
 ### Branch Strategy
 
 ```
 main (stable)
   └── develop (integration)
-        └── feature/phase2-summaries       [Task 2.1]
+        └── feature/phase3-*               [Tasks 3.x]
 ```
 
 ### Active Agent Assignments
@@ -89,6 +89,8 @@ main (stable)
 | `feature/phase0-components` | Core UI Components | Claude Opus | ✅ Complete | See Task 0.3 | 2026-02-08 |
 | `feature/phase0-utilities` | Utility Functions | Claude Opus | ✅ Complete | See Task 0.4 | 2026-02-09 |
 | `feature/phase1-news` | News Fetching & Display | Claude Opus | ✅ Complete | See Tasks 1.1-1.2 | 2026-02-09 |
+| `feature/phase2-summaries` | AI Summaries & Digest | Claude Opus | ✅ Complete | See Tasks 2.1-2.3 | 2026-02-09 |
+| `feature/phase3-directory` | Homepage, Tools & Tests | Claude Opus | ✅ Complete | See Tasks 3.1-3.8 | 2026-02-09 |
 
 ---
 
@@ -333,6 +335,48 @@ curl http://localhost:3000/api/health
 **Completed:** Landing page, Header, Footer, NewsCard, ThemeToggle, ThemeProvider
 **Remaining:** ToolCard, DigestCard, SafeImage, AudioPlayer, FilterBar, SearchInput, Badge
 **Next:** Another AI to continue with remaining Phase 0.3 components.
+
+### 2026-02-09 — Claude Opus — Branch: feature/phase3-directory → develop → main
+**Status:** Complete
+**Summary:**
+- Task 3.1: Migration 006 (slug column on tools), updated Tool interface, TOOLS_PER_PAGE constant
+- Task 3.2: Homepage — replaced all mock data with real Supabase queries (digest, articles, stats), ISR
+- Task 3.3: Fixed header nav links (/news, /tools)
+- Task 3.4: Tools API endpoint with search/filter/cursor pagination
+- Task 3.5: Tools listing page with category + pricing filters, 3-column grid
+- Task 3.6: Tool detail page (/tools/[slug]) with related tools
+- Task 3.7: Migration 007 — seeded 50 AI tools across 6 categories
+- Task 3.8: 21 new tests for prompts, summariser, digest-generator (91 total)
+- ToolCard updated with internal linking via Next.js Link when slug present
+- Build, lint, and all 91 tests passing
+**Issues:** None.
+### 2026-02-09 — Antigravity — Navigation Polish
+**Status:** Complete
+**Summary:**
+- Implemented `FloatingControls` (Scroll To Top only)
+- Created `BackToHome` component (Minimalist House icon)
+- Positioned `BackToHome` in TOP-RIGHT of content area for News/Tools detail pages
+- Added `BackToHome` to `/news` and `/tools` listing pages
+- Created `/about` page with consistent navigation
+- Fixed broken "About" link in Global Header
+- Replaced manual "Back" links with Breadcrumbs in `/news/[slug]` and `/tools/[slug]`
+- Fixed missing imports/exports
+**Issues:** None.
+**Next:** Phase 3 complete. User action: run migrations 006 + 007 in Supabase SQL Editor.
+
+### 2026-02-09 — Claude Opus — Branch: feature/phase2-summaries → develop → main
+**Status:** Complete
+**Summary:**
+- Reviewed and fixed Phase 2 implementation by another agent
+- Task 2.1: Centralised prompts, article summariser with p-limit(3) concurrency, skipped status for generic errors
+- Task 2.2: Google Cloud TTS client with lazy init, daily digest generator with published_at fallback
+- Task 2.3: CRON endpoints for summarise (hourly) and daily-digest (6AM AWST)
+- Fixed: duplicate DigestCard, select('*'), failed_error mapping, TTS import crash, env docs
+- Fixed pre-existing SearchInput setState-in-effect lint error
+- Organised onto proper feature branch, merged to develop → main
+- 70 tests passing, lint clean, TypeScript clean
+**Issues:** None.
+**Next:** Phase 2 complete. Remaining: create digests Storage bucket, add unit tests, update homepage with DigestCard.
 
 ### 2026-02-09 — Claude Opus — Branch: feature/phase1-news → develop → main
 **Status:** Complete

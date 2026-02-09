@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { ToolCard } from "@/components/cards/ToolCard";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { BackToHome } from "@/components/ui/BackToHome";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -79,13 +80,11 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       {/* Back link */}
-      <Link
-        href="/tools"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors mb-6 no-underline"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Tools
-      </Link>
+
+      <div className="flex items-center justify-between mb-8">
+        <Breadcrumbs items={[{ label: "Tools", href: "/tools" }, { label: tool.name }]} className="mb-0" />
+        <BackToHome variant="icon" />
+      </div>
 
       {/* Tool header */}
       <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-soft mb-8">
