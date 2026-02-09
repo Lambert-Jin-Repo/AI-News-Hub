@@ -74,15 +74,6 @@ function formatSummaryMarkdown(parsed: ArticleLLMResponse): string {
  * Parses JSON response to extract classification, relevance, and structured summary.
  */
 async function summariseArticle(article: ArticleForSummary): Promise<SummarisationResult> {
-    // Skip articles with no excerpt and no meaningful content for the LLM
-    if (!article.raw_excerpt?.trim()) {
-        return {
-            id: article.id,
-            status: 'skipped',
-            error: 'No excerpt available for summarisation',
-        };
-    }
-
     try {
         const input = buildArticleSummaryInput({
             title: article.title,

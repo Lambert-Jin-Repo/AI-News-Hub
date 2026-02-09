@@ -54,9 +54,9 @@ export async function generateDailyDigest(): Promise<DigestResult> {
     }
     let articles = data;
 
-    // Low-volume handling: expand lookback to 48h
+    // Low-volume handling: expand lookback to 7 days
     if (!articles || articles.length < 3) {
-        const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const twoDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { data: expandedArticles } = await supabase
             .from('articles')
             .select('id, title, ai_summary, source, published_at, category')
