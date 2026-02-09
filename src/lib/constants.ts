@@ -46,6 +46,7 @@ export type SourceType = (typeof SOURCE_TYPE)[keyof typeof SOURCE_TYPE];
 // Defaults
 export const DEFAULTS = {
   ARTICLES_PER_PAGE: 20,
+  TOOLS_PER_PAGE: 24,
   SUMMARISE_BATCH_SIZE: 10,
   DIGEST_ARTICLE_COUNT: 10,
   DIGEST_WORD_TARGET: 400,
