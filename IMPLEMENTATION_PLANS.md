@@ -4,7 +4,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-08
+**Last Updated:** 2026-02-09
 
 ---
 
@@ -16,14 +16,20 @@
 | 0.2 | Database & Supabase | ✅ Complete | [Jump](#phase-02-database--supabase-setup) |
 | 0.3 | Core UI Components | ✅ Complete | [Jump](#phase-03-core-ui-components) |
 | 0.4 | Utility Functions | ✅ Complete | [Jump](#phase-04-utility-functions) |
-| 1.1 | News Fetching Pipeline | Ready | [Jump](#phase-11-news-fetching-pipeline) |
-| 1.2 | News Display Pages | Ready | [Jump](#phase-12-news-display-pages) |
-| 2.1 | LLM Summarisation | Pending Phase 1 | [Jump](#phase-21-llm-summarisation) |
-| 2.2 | Daily Digest | Pending Phase 1 | [Jump](#phase-22-daily-digest) |
-| 3.1 | TTS Audio Generation | Pending Phase 2 | [Jump](#phase-31-tts-audio-generation) |
-| 3.2 | Tools Directory | Pending Phase 2 | [Jump](#phase-32-tools-directory) |
-| 4.1 | Polish & SEO | Pending Phase 3 | [Jump](#phase-41-polish--seo) |
-| 4.2 | Launch Checklist | Pending Phase 3 | [Jump](#phase-42-launch-checklist) |
+| 1.1 | News Fetching Pipeline | ✅ Complete | [Jump](#phase-11-news-fetching-pipeline) |
+| 1.2 | News Display Pages | ✅ Complete | [Jump](#phase-12-news-display-pages) |
+| 2.1 | LLM Summarisation | ✅ Complete | [Jump](#phase-21-llm-summarisation) |
+| 2.2 | Daily Digest | ✅ Complete | [Jump](#phase-22-daily-digest) |
+| 3.1 | Homepage, Tools & Tests | ✅ Complete | [Jump](#phase-31-tts-audio-generation) |
+| 4.1 | Polish & Launch | ✅ Complete | [Jump](#phase-41-polish--seo) |
+| 5.1 | Schema: Category & Metadata | Ready | [Jump](#phase-51-schema--category--metadata-columns) |
+| 5.2 | Prompt Overhaul | Ready | [Jump](#phase-52-prompt-overhaul) |
+| 5.3 | Summariser: Classify & Filter | Ready | [Jump](#phase-53-summariser--classify-filter--store) |
+| 5.4 | Digest: Sectioned Format | Ready | [Jump](#phase-54-digest-generator--sectioned-format) |
+| 5.5 | TTS: Podcast Script & Voice | Ready | [Jump](#phase-55-tts-enhancement) |
+| 5.6 | Homepage: Structured Digest UI | Ready | [Jump](#phase-56-homepage-ui--structured-digest) |
+| 5.7 | News Feed: Category Filter | Ready | [Jump](#phase-57-news-feed-ui--category-filter) |
+| 5.8 | Tests: Update & Expand | Ready | [Jump](#phase-58-update-tests) |
 
 ---
 
@@ -2115,30 +2121,616 @@ query.textSearch('search_vector', searchQuery, { type: 'websearch' })
 
 ---
 
-# Phase 2: AI Summaries
+# Phase 2: AI Summaries — ✅ Complete
 
-*(Plans to be detailed after Phase 1 completion)*
-
-## Phase 2.1: LLM Summarisation
-## Phase 2.2: Daily Digest
+## Phase 2.1: LLM Summarisation — ✅ Complete
+## Phase 2.2: Daily Digest — ✅ Complete
 
 ---
 
-# Phase 3: Audio & Directory
-
-*(Plans to be detailed after Phase 2 completion)*
-
-## Phase 3.1: TTS Audio Generation
-## Phase 3.2: Tools Directory
+# Phase 3: Homepage, Tools & Tests — ✅ Complete
 
 ---
 
-# Phase 4: Polish & Launch
+# Phase 4: Polish & Launch — ✅ Complete
 
-*(Plans to be detailed after Phase 3 completion)*
+---
 
-## Phase 4.1: Polish & SEO
-## Phase 4.2: Launch Checklist
+# Phase 5: LLM Focus Pivot & Summary Enhancement
+
+**Branch:** `feature/phase5-llm-pivot`
+**Estimated Time:** 8-12 hours
+**Prerequisites:** Phase 4 complete (all merged to main)
+
+## Context & Motivation
+
+The app currently fetches **all** AI/tech news indiscriminately. The daily briefing is a
+wall of narrative paragraphs — boring to scan, not actionable. The audio summary reads
+like a Wikipedia article.
+
+Phase 5 makes two major shifts:
+1. **News filtering** — Narrow to LLM, Models & Agents. Classify articles during summarisation and skip off-topic content.
+2. **Summary enhancement** — Transform from passive reporting to actionable developer cheat sheets with structured sections and a conversational podcast-style audio briefing.
+
+## Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Filtering approach | Classify + filter at summarise time | Single LLM call, no extra API cost |
+| Summary storage | `ai_summary` (text) + `ai_metadata` (JSONB) | Backwards-compatible, structured data queryable |
+| Category values | `llm`, `agents`, `models`, `research`, `tools`, `other` | Covers the focus area + escape hatch |
+| Relevance threshold | Score < 5 out of 10 → skip (configurable via env) | Balanced filtering, configurable via RELEVANCE_THRESHOLD env var |
+| Digest format | Sectioned markdown (not Mermaid/images) | Zero new dependencies, SEO-friendly, accessible |
+| Audio approach | Separate podcast script prompt + Standard-D voice | Conversational style via prompt, free tier TTS keeps cost near $0 |
+| Low-volume days | Expand lookback to 48h, then skip | Better no digest than a padded one |
+
+---
+
+## Phase 5.1: Schema — Category & Metadata Columns
+
+**File:** `supabase/migrations/009_add_category_and_metadata.sql`
+
+### Step 1: Write migration
+
+```sql
+-- Migration 009: Add category and ai_metadata columns to articles
+-- Supports LLM-focus filtering and structured summary data
+
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS ai_metadata JSONB;
+
+-- Index for category filtering
+CREATE INDEX IF NOT EXISTS idx_articles_category ON articles (category);
+
+-- Add constraint for allowed values (loose — allows NULL for unclassified)
+ALTER TABLE articles ADD CONSTRAINT articles_category_check
+  CHECK (category IS NULL OR category IN ('llm', 'agents', 'models', 'research', 'tools', 'other'));
+
+COMMENT ON COLUMN articles.category IS 'Article classification: llm, agents, models, research, tools, other';
+COMMENT ON COLUMN articles.ai_metadata IS 'Structured extraction data from LLM (tech_stack, relevance_score, etc.)';
+```
+
+### Step 2: Update TypeScript interface
+
+**File:** `src/lib/supabase.ts`
+
+Add to `Article` interface:
+```typescript
+category: string | null;
+ai_metadata: Record<string, unknown> | null;
+```
+
+### Step 3: Add ARTICLE_CATEGORY constant
+
+**File:** `src/lib/constants.ts`
+
+```typescript
+export const ARTICLE_CATEGORY = {
+  LLM: 'llm',
+  AGENTS: 'agents',
+  MODELS: 'models',
+  RESEARCH: 'research',
+  TOOLS: 'tools',
+  OTHER: 'other',
+} as const;
+
+export type ArticleCategory = (typeof ARTICLE_CATEGORY)[keyof typeof ARTICLE_CATEGORY];
+
+// Categories considered "on-topic" for the LLM-focused site
+export const ON_TOPIC_CATEGORIES: ArticleCategory[] = ['llm', 'agents', 'models', 'research'];
+
+// Minimum relevance score (1-10) to keep an article — configurable via env var
+export const RELEVANCE_THRESHOLD = parseInt(process.env.RELEVANCE_THRESHOLD || '5', 10);
+```
+
+### Step 4: Commit
+```bash
+git add supabase/migrations/009_add_category_and_metadata.sql src/lib/supabase.ts src/lib/constants.ts
+git commit -m "feat(db): add category and ai_metadata columns to articles"
+```
+
+---
+
+## Phase 5.2: Prompt Overhaul
+
+**File:** `src/lib/prompts.ts`
+
+### Step 1: Update ARTICLE_SUMMARY_PROMPT
+
+Replace the current simple prompt with one that requests JSON output:
+
+```typescript
+export const ARTICLE_SUMMARY_PROMPT = `You are a Senior AI Engineer classifying and summarising news articles for a developer-focused AI news site.
+
+Instructions:
+1. Classify the article into one category: llm, agents, models, research, tools, other
+2. Rate relevance to LLM/AI practitioners on a 1-10 scale (10 = directly about new LLM/agent/model releases)
+3. Extract a structured summary
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "classification": "llm|agents|models|research|tools|other",
+  "relevance_score": 1-10,
+  "tldr": "One sentence of impact",
+  "key_points": ["Point 1", "Point 2"],
+  "tech_stack": ["Library or API mentioned, if any"],
+  "why_it_matters": "One line of practical impact for developers"
+}
+
+Rules:
+- classification must be exactly one of: llm, agents, models, research, tools, other
+- relevance_score must be an integer 1-10
+- key_points should have 2-3 items
+- tech_stack can be empty array if no specific tech mentioned
+- Be concise and factual, no hype`;
+```
+
+### Step 2: Update DAILY_DIGEST_PROMPT
+
+Replace narrative style with sectioned format:
+
+```typescript
+export const DAILY_DIGEST_PROMPT = `You are the editor of a developer-focused AI briefing called "Today in AI".
+
+Write a structured daily briefing using EXACTLY these sections with markdown headers:
+
+## The Big Picture
+2-3 sentences summarising the day's overarching theme or most important development.
+
+## Key Releases
+- Bullet list of model launches, tool updates, or major announcements
+- Each bullet: **Name** — what it does and why it matters
+- 3-6 items
+
+## Worth Watching
+- Bullet list of emerging trends, research papers, or early-stage developments
+- 2-4 items
+
+## Developer Takeaway
+One actionable insight or recommendation based on today's news. What should a developer do differently after reading this?
+
+Rules:
+- Use bullet points (not numbered lists) in Key Releases and Worth Watching
+- Bold the name/title of each item
+- Keep total length 300-500 words
+- Be specific with numbers, model names, and benchmarks when available
+- Output ONLY the markdown sections, no preamble`;
+```
+
+### Step 3: Add AUDIO_SCRIPT_PROMPT (new)
+
+```typescript
+export const AUDIO_SCRIPT_PROMPT = `You are a podcast host for a 2-minute daily AI briefing called "Today in AI".
+
+Convert the following written briefing into a natural, conversational audio script.
+
+Rules:
+- Write as if speaking to a friend who's a developer
+- Start with "Good morning!" or a similar greeting
+- Use casual transitions: "Now here's the interesting part...", "Speaking of which...", "And finally..."
+- Pronounce acronyms naturally (say "GPT" not "G-P-T", say "llama" not "L-L-A-M-A")
+- Replace markdown formatting with spoken equivalents (no bullet points, no headers)
+- End with a brief sign-off like "That's your AI briefing for today. Have a great one!"
+- Keep the same information but make it flow as natural speech
+- 300-450 words
+- Output ONLY the script text, no stage directions`;
+```
+
+### Step 4: Add buildAudioScriptInput helper
+
+```typescript
+export function buildAudioScriptInput(digestText: string): string {
+    return `Written briefing to convert to podcast script:\n\n${digestText}`;
+}
+```
+
+### Step 5: Update buildDailyDigestInput to include category
+
+```typescript
+export function buildDailyDigestInput(
+    articles: Array<{ title: string; ai_summary: string | null; source: string | null; category: string | null }>
+): string {
+    const stories = articles
+        .map((a, i) => {
+            const summary = a.ai_summary || '(no summary available)';
+            const cat = a.category ? `[${a.category.toUpperCase()}]` : '';
+            return `${i + 1}. ${cat} [${a.source || 'Unknown'}] ${a.title}\n   ${summary}`;
+        })
+        .join('\n\n');
+
+    return `Today's top AI news stories:\n\n${stories}`;
+}
+```
+
+### Step 6: Commit
+```bash
+git add src/lib/prompts.ts
+git commit -m "feat(prompts): structured article summaries, sectioned digest, podcast audio script"
+```
+
+---
+
+## Phase 5.3: Summariser — Classify, Filter & Store
+
+**File:** `src/lib/summariser.ts`
+
+### Step 1: Add JSON response parser
+
+```typescript
+interface ArticleLLMResponse {
+    classification: string;
+    relevance_score: number;
+    tldr: string;
+    key_points: string[];
+    tech_stack: string[];
+    why_it_matters: string;
+}
+
+function parseLLMResponse(text: string): ArticleLLMResponse | null {
+    try {
+        // Strip markdown code fences if present
+        const cleaned = text.replace(/^```json?\n?/m, '').replace(/\n?```$/m, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        // Validate required fields
+        if (!parsed.classification || typeof parsed.relevance_score !== 'number') {
+            return null;
+        }
+        return parsed as ArticleLLMResponse;
+    } catch {
+        return null;
+    }
+}
+```
+
+### Step 2: Format parsed response into readable markdown
+
+```typescript
+function formatSummaryMarkdown(parsed: ArticleLLMResponse): string {
+    const lines: string[] = [];
+    lines.push(parsed.tldr);
+    lines.push('');
+    if (parsed.key_points.length > 0) {
+        parsed.key_points.forEach(point => lines.push(`- ${point}`));
+        lines.push('');
+    }
+    if (parsed.why_it_matters) {
+        lines.push(`**Why it matters:** ${parsed.why_it_matters}`);
+    }
+    return lines.join('\n');
+}
+```
+
+### Step 3: Update summariseArticle to parse and store metadata
+
+Update the `summariseArticle` function:
+- Call LLM as before
+- Parse JSON response
+- If parsed successfully: store `category`, `ai_metadata`, and formatted `ai_summary`
+- If relevance_score < RELEVANCE_THRESHOLD: set `summary_status = 'skipped'`
+- If JSON parse fails: fall back to storing raw text in `ai_summary` with `category = null`
+
+### Step 4: Update database write
+
+```typescript
+const updateData: Record<string, unknown> = {
+    summary_status: result.status,
+};
+
+if (result.summary) updateData.ai_summary = result.summary;
+if (result.category) updateData.category = result.category;
+if (result.metadata) updateData.ai_metadata = result.metadata;
+```
+
+### Step 5: Commit
+```bash
+git add src/lib/summariser.ts
+git commit -m "feat(summariser): classify articles by category and filter by relevance"
+```
+
+---
+
+## Phase 5.4: Digest Generator — Sectioned Format
+
+**File:** `src/lib/digest-generator.ts`
+
+### Step 1: Filter articles by on-topic categories
+
+```typescript
+import { ON_TOPIC_CATEGORIES } from './constants';
+
+// Replace current article query with category filter
+const { data: articles, error: fetchError } = await supabase
+    .from('articles')
+    .select('id, title, ai_summary, source, published_at, category')
+    .eq('summary_status', 'completed')
+    .in('category', ON_TOPIC_CATEGORIES)
+    .or(`published_at.gte.${yesterday},and(published_at.is.null,fetched_at.gte.${yesterday})`)
+    .order('is_featured', { ascending: false })
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .limit(10);
+```
+
+### Step 2: Add low-volume day handling
+
+```typescript
+// If fewer than 3 articles in 24h, expand lookback to 48h
+if (!articles || articles.length < 3) {
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data: expandedArticles } = await supabase
+        .from('articles')
+        .select('id, title, ai_summary, source, published_at, category')
+        .eq('summary_status', 'completed')
+        .in('category', ON_TOPIC_CATEGORIES)
+        .or(`published_at.gte.${twoDaysAgo},and(published_at.is.null,fetched_at.gte.${twoDaysAgo})`)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(10);
+
+    if (!expandedArticles || expandedArticles.length < 3) {
+        // Skip digest for today — not enough content
+        return { digestId: null, summaryText: null, audioUrl: null, articleCount: 0, skipped: true };
+    }
+    articles = expandedArticles;
+}
+```
+
+### Step 3: Update buildDailyDigestInput call
+
+Pass `category` field through to the prompt helper.
+
+### Step 4: Commit
+```bash
+git add src/lib/digest-generator.ts
+git commit -m "feat(digest): category-filtered digest with low-volume day handling"
+```
+
+---
+
+## Phase 5.5: TTS Enhancement
+
+**Files:** `src/lib/tts-client.ts`, `src/lib/digest-generator.ts`
+
+### Step 1: Add podcast script generation to digest pipeline
+
+In `digest-generator.ts`, after generating the sectioned digest:
+
+```typescript
+import { AUDIO_SCRIPT_PROMPT, buildAudioScriptInput } from './prompts';
+
+// Generate conversational podcast script for TTS (separate from written digest)
+const audioScriptInput = buildAudioScriptInput(summaryText);
+const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput);
+const audioScript = audioScriptResponse.text;
+
+// Use audioScript (not summaryText) for TTS
+const { audioBuffer, contentType } = await generateSpeech(audioScript);
+```
+
+### Step 2: TTS Voice (Cost-Optimized)
+
+Keep the free-tier Standard-D voice instead of upgrading to Journey:
+
+```typescript
+voice: {
+    languageCode: 'en-US',
+    name: 'en-US-Standard-D',  // Keep free tier voice
+    ssmlGender: 'MALE',
+},
+```
+
+Rationale: Journey voice costs ~$2/month. Standard-D is adequate for news briefings and keeps monthly cost under $1.
+
+### Step 3: Commit
+```bash
+git add src/lib/tts-client.ts src/lib/digest-generator.ts
+git commit -m "feat(tts): podcast-style audio script with Standard voice"
+```
+
+---
+
+## Phase 5.6: Homepage UI — Structured Digest
+
+**File:** `src/app/page.tsx`
+
+### Step 1: Create section parser
+
+```typescript
+interface DigestSection {
+    title: string;
+    icon: string; // lucide icon name
+    content: string; // markdown content for this section
+}
+
+function parseDigestSections(text: string): DigestSection[] | null {
+    const sections: DigestSection[] = [];
+    const sectionMap: Record<string, string> = {
+        'The Big Picture': 'zap',
+        'Key Releases': 'rocket',
+        'Worth Watching': 'eye',
+        'Developer Takeaway': 'lightbulb',
+    };
+
+    const parts = text.split(/^## /m).filter(Boolean);
+    for (const part of parts) {
+        const [titleLine, ...rest] = part.split('\n');
+        const title = titleLine.trim();
+        const icon = sectionMap[title] || 'file-text';
+        sections.push({ title, icon, content: rest.join('\n').trim() });
+    }
+
+    return sections.length > 0 ? sections : null;
+}
+```
+
+### Step 2: Render sections with icons
+
+Replace the current paragraph-rendering block with:
+- If `parseDigestSections()` returns sections → render with icons, headers, styled bullets
+- If returns null (old plain-text digest) → fall back to current paragraph rendering
+
+### Step 3: Style bullet points
+
+```jsx
+{section.content.split('\n').filter(Boolean).map((line, i) => {
+    if (line.startsWith('- ')) {
+        return (
+            <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                <span dangerouslySetInnerHTML={{ __html: renderMarkdownInline(line.slice(2)) }} />
+            </li>
+        );
+    }
+    return <p key={i} className="text-sm text-gray-600 dark:text-gray-300">{line}</p>;
+})}
+```
+
+Note: `renderMarkdownInline` handles bold (`**text**` → `<strong>text</strong>`) only.
+No external markdown library needed — simple regex replacement for bold text.
+
+### Step 4: Commit
+```bash
+git add src/app/page.tsx
+git commit -m "feat(home): render structured digest sections with icons"
+```
+
+---
+
+## Phase 5.7: News Feed UI — Category Filter
+
+### Step 1: Update API
+
+**File:** `src/app/api/news/route.ts`
+
+Add `category` query param handling:
+```typescript
+const category = searchParams.get('category')?.trim() || '';
+
+if (category) {
+    query = query.eq('category', category);
+}
+```
+
+Also add `category` to the select columns list.
+
+### Step 2: Update server component
+
+**File:** `src/app/news/page.tsx`
+
+Add `getCategories()` function:
+```typescript
+async function getCategories(): Promise<string[]> {
+    const { data } = await supabase
+        .from('articles')
+        .select('category')
+        .not('category', 'is', null)
+        .order('category');
+
+    if (!data) return [];
+    return [...new Set(data.map(d => d.category).filter(Boolean))];
+}
+```
+
+Pass `categories` prop to `NewsFeed`.
+
+### Step 3: Update client component
+
+**File:** `src/app/news/news-feed.tsx`
+
+- Add `categories` to props interface
+- Add `selectedCategory` state
+- Add second `FilterBar` for categories (All / LLM / Agents / Models / Research)
+- Pass `category` param to `fetchArticles()`
+
+### Step 4: Update article detail page
+
+**File:** `src/app/news/[slug]/page.tsx`
+
+Show category badge:
+```jsx
+{article.category && (
+    <Badge variant="primary">{article.category.toUpperCase()}</Badge>
+)}
+```
+
+### Step 5: Commit
+```bash
+git add src/app/api/news/route.ts src/app/news/page.tsx src/app/news/news-feed.tsx src/app/news/[slug]/page.tsx
+git commit -m "feat(news): add category filter to news feed and API"
+```
+
+---
+
+## Phase 5.8: Update Tests
+
+### Step 1: Update prompts tests
+
+**File:** `src/lib/__tests__/prompts.test.ts`
+
+- Test `buildDailyDigestInput` includes `[LLM]` category prefix
+- Test new `buildAudioScriptInput` formats correctly
+
+### Step 2: Update summariser tests
+
+**File:** `src/lib/__tests__/summariser.test.ts`
+
+New test cases:
+- `parseLLMResponse` handles valid JSON
+- `parseLLMResponse` handles markdown code fences
+- `parseLLMResponse` returns null on invalid JSON
+- Relevance score < 4 → article skipped
+- Category stored in database update
+- `ai_metadata` stored in database update
+- JSON parse failure → falls back to raw text in ai_summary
+
+### Step 3: Update digest tests
+
+**File:** `src/lib/__tests__/digest-generator.test.ts`
+
+New test cases:
+- Article query includes `.in('category', ON_TOPIC_CATEGORIES)` filter
+- Low volume (< 3 articles in 24h) → expands lookback to 48h
+- Ultra-low volume (< 3 articles in 48h) → returns skipped result
+- Audio script LLM call made with AUDIO_SCRIPT_PROMPT
+
+### Step 4: Commit
+```bash
+git add src/lib/__tests__/prompts.test.ts src/lib/__tests__/summariser.test.ts src/lib/__tests__/digest-generator.test.ts
+git commit -m "test: update tests for category filtering and structured summaries"
+```
+
+---
+
+## Phase 5 Commit Summary (8 atomic commits)
+
+| # | Message | Files |
+|---|---------|-------|
+| 1 | `feat(db): add category and ai_metadata columns to articles` | migration 009, supabase.ts, constants.ts |
+| 2 | `feat(prompts): structured article summaries, sectioned digest, podcast audio script` | prompts.ts |
+| 3 | `feat(summariser): classify articles by category and filter by relevance` | summariser.ts |
+| 4 | `feat(digest): category-filtered digest with low-volume day handling` | digest-generator.ts |
+| 5 | `feat(tts): podcast-style audio script with Standard voice` | tts-client.ts, digest-generator.ts |
+| 6 | `feat(home): render structured digest sections with icons` | page.tsx |
+| 7 | `feat(news): add category filter to news feed and API` | api/news/route.ts, news pages |
+| 8 | `test: update tests for category filtering and structured summaries` | 3 test files |
+
+## Phase 5 Verification
+
+After implementation:
+- `npm run build` — passes with no errors
+- `npm run lint` — 0 errors
+- `npm test` — all tests pass (91 existing + ~10-15 new ≈ 100-106 total)
+- Homepage renders sectioned digest (or falls back for old digests)
+- `/news` page has category filter bar
+- `/news/[slug]` shows category badge
+- Article summaries include category classification
+- Low-relevance articles are skipped during summarisation
+- Audio uses podcast-style script with Standard-D voice (free tier)
+- Existing articles with `category = NULL` still display correctly
+
+### User action required after merge:
+- Run migration `009_add_category_and_metadata.sql` in Supabase SQL Editor
+- Manually trigger summarise CRON to re-classify existing articles (optional)
+- Standard-D voice is used (free tier, no additional setup needed)
 
 ---
 

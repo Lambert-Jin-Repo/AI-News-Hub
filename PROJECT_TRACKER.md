@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-02-09
-**Status:** ✅ Phase 4 Complete — Ready for Launch
+**Status:** Phase 5 — LLM Focus Pivot & Summary Enhancement
 
 ---
 
@@ -60,6 +60,7 @@
 | 2 | AI Summaries | Weeks 4-5 | ✅ Complete | Phase 1 |
 | 3 | Homepage, Tools & Tests | Weeks 6-7 | ✅ Complete | Phase 2 |
 | 4 | Polish & Launch | Weeks 8-9 | ✅ Complete | Phase 3 |
+| 5 | LLM Focus Pivot & Summary Enhancement | Weeks 10-11 | ⏳ Not Started | Phase 4 |
 
 **Status Legend:**
 - ⏳ Not Started
@@ -70,14 +71,14 @@
 
 ---
 
-## Current Sprint: Phase 4 — Polish & Launch (Complete)
+## Current Sprint: Phase 5 — LLM Focus Pivot & Summary Enhancement
 
 ### Branch Strategy
 
 ```
 main (stable)
   └── develop (integration)
-        └── feature/phase4-polish    [Tasks 4.1-4.9] ✅ Complete
+        └── feature/phase5-llm-pivot    [Tasks 5.1-5.8] ⏳ Not Started
 ```
 
 ### Active Agent Assignments
@@ -92,10 +93,312 @@ main (stable)
 | `feature/phase2-summaries` | AI Summaries & Digest | Claude Opus | ✅ Complete | See Tasks 2.1-2.3 | 2026-02-09 |
 | `feature/phase3-directory` | Homepage, Tools & Tests | Claude Opus | ✅ Complete | See Tasks 3.1-3.8 | 2026-02-09 |
 | `feature/phase4-polish` | Polish & Launch | Antigravity | ✅ Complete | See Tasks 4.1-4.9 | 2026-02-09 |
+| `feature/phase5-llm-pivot` | LLM Focus & Summary 2.0 | TBD | ⏳ Not Started | See Tasks 5.1-5.8 | — |
 
 ---
 
 ## Detailed Task Breakdown
+
+### Phase 5: LLM Focus Pivot & Summary Enhancement
+
+> **Goal:** Narrow news coverage from broad AI/tech to LLM, Models & Agents specifically.
+> Simultaneously transform the daily briefing from boring paragraph summaries into
+> an actionable, scannable "developer cheat sheet" with structured sections and
+> a conversational podcast-style audio briefing.
+
+> **Cost Optimization Applied:** This phase uses cost-optimized settings:
+> - TTS Voice: Standard-D (free tier, not Journey)
+> - Summarise frequency: Every 2 hours
+> - Max articles/day: 20
+> - See `docs/COST_OPTIMIZATION.md` for details
+>
+> **GitHub Actions Usage Estimate:**
+>
+> | Task | Frequency | Duration | Monthly Minutes |
+> |------|-----------|----------|-----------------|
+> | News fetching | 2×/day | 1 min | 60 |
+> | Summarisation | 12×/day | 1 min | 360 |
+> | Daily digest | 1×/day | 2 min | 60 |
+> | **Total** | | | **~500 min/month** |
+
+---
+
+### Task 5.1: Schema — Add `category` and `ai_metadata` Columns
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — Files to CREATE/MODIFY:**
+```
+├── supabase/migrations/
+│   └── 009_add_category_and_metadata.sql   # New migration
+├── src/lib/supabase.ts                      # Update Article interface
+└── src/lib/constants.ts                     # Add ARTICLE_CATEGORY enum
+```
+
+**Migration `009_add_category_and_metadata.sql`:**
+- Add `category TEXT` column to articles (values: `llm`, `agents`, `models`, `research`, `tools`, `other`, `null`)
+- Add `ai_metadata JSONB` column to articles (structured extraction data)
+- Add index on `category` for filtering
+- Keep existing `ai_summary TEXT` column for backwards compatibility (human-readable summary)
+
+**TypeScript changes:**
+- Add `category: string | null` and `ai_metadata: Record<string, unknown> | null` to `Article` interface
+- Add `ARTICLE_CATEGORY` enum to constants
+
+**Deliverables:**
+- [ ] Migration 009 SQL file
+- [ ] Updated Article interface with `category` and `ai_metadata`
+- [ ] ARTICLE_CATEGORY constant with allowed values
+
+**Commit:** `feat(db): add category and ai_metadata columns to articles`
+
+---
+
+### Task 5.2: Prompt Overhaul — Structured Summaries & Sectioned Digest
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — File:** `src/lib/prompts.ts`
+
+**Article Summary Prompt** — Change from plain text output to structured markdown:
+```
+New output format per article:
+- **Classification**: (LLM / Agents / Models / Research / Tools / Other)
+- **Relevance**: (1-10 score — how relevant to LLM/Agents/Models practitioners)
+- **TL;DR**: One sentence of impact
+- **Key Points**: 2-3 bullet points
+- **Tech Stack**: Libraries/APIs mentioned (if any)
+- **Why It Matters**: One line of practical impact for developers
+```
+
+The LLM response will be JSON so we can parse classification + relevance programmatically
+while storing the readable parts in `ai_summary` as markdown.
+
+**Daily Digest Prompt** — Change from narrative paragraphs to sectioned briefing:
+```
+Sections:
+1. "The Big Picture" — 2-3 sentence theme of the day
+2. "Key Releases" — Bullet list of model/tool launches
+3. "Worth Watching" — Emerging trends or research
+4. "Developer Takeaway" — One actionable insight
+```
+
+**Audio Script Prompt** (new) — Separate prompt for TTS input:
+```
+Write in a conversational "morning podcast" tone.
+Instead of: "Today OpenAI released GPT-5..."
+Write: "Good morning! If you've been waiting for a cheaper way to run high-speed agents, OpenAI just gave you a gift..."
+```
+
+**Deliverables:**
+- [ ] Updated `ARTICLE_SUMMARY_PROMPT` requesting JSON with classification + structured markdown
+- [ ] Updated `DAILY_DIGEST_PROMPT` with named sections and bullet-point format
+- [ ] New `AUDIO_SCRIPT_PROMPT` for conversational podcast-style TTS
+- [ ] Updated `buildArticleSummaryInput()` — no change needed (title + excerpt still valid input)
+- [ ] Updated `buildDailyDigestInput()` — include category in the story list
+- [ ] New `buildAudioScriptInput()` — takes sectioned digest text, formats for audio prompt
+
+**Commit:** `feat(prompts): structured article summaries, sectioned digest, podcast audio script`
+
+---
+
+### Task 5.3: Summariser Update — Classify, Filter & Store Metadata
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — File:** `src/lib/summariser.ts`
+
+**Changes:**
+1. Parse LLM JSON response to extract: `classification`, `relevance_score`, and markdown summary
+2. Store `category` from classification in the articles table
+3. Store structured data (`tech_stack`, `relevance_score`) in `ai_metadata` JSONB column
+4. Store human-readable markdown (TL;DR + Key Points + Why It Matters) in `ai_summary` as before
+5. **Relevance filtering:** If `relevance_score < 4` (out of 10), set `summary_status = 'skipped'` and
+   store a brief reason — don't waste digest space on off-topic articles
+6. Handle JSON parse failure gracefully — fall back to storing raw text in `ai_summary` with `category = null`
+
+**Architecture:**
+```
+Article → LLM (single call) → JSON response
+  ├── Parse classification → articles.category
+  ├── Parse relevance → skip if < 4
+  ├── Parse tech_stack, relevance → articles.ai_metadata (JSONB)
+  └── Format TL;DR + Key Points + Why It Matters → articles.ai_summary (text)
+```
+
+**Key principle:** Single Gemini call per article (no extra API cost vs current approach).
+The prompt does classification + summarisation together.
+
+**Deliverables:**
+- [ ] JSON response parsing with fallback
+- [ ] Category stored in `articles.category`
+- [ ] Metadata stored in `articles.ai_metadata`
+- [ ] Relevance threshold filtering (score < 4 → skipped)
+- [ ] Backwards-compatible: `ai_summary` still contains readable text
+
+**Commit:** `feat(summariser): classify articles by category and filter by relevance`
+
+---
+
+### Task 5.4: Digest Generator Update — Sectioned Format & Low-Volume Handling
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — File:** `src/lib/digest-generator.ts`
+
+**Changes:**
+1. Filter articles for digest: only include `category IN ('llm', 'agents', 'models', 'research')`
+2. Pass category info to `buildDailyDigestInput()` for grouping
+3. **Low-volume handling:** If fewer than 3 relevant articles in last 24h:
+   - Expand lookback to 48h
+   - If still < 3, skip digest generation for the day (return a "quiet day" message)
+4. Store the sectioned markdown output from the LLM in `summary_text`
+
+**Deliverables:**
+- [ ] Category filter on article selection for digest
+- [ ] Low-volume day handling (expanded lookback → skip)
+- [ ] `buildDailyDigestInput()` includes category grouping
+- [ ] Digest `summary_text` contains sectioned markdown
+
+**Commit:** `feat(digest): category-filtered digest with low-volume day handling`
+
+---
+
+### Task 5.5: TTS Enhancement — Podcast Script (Standard-D Voice)
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — Files:**
+```
+├── src/lib/tts-client.ts          # Upgrade voice
+├── src/lib/digest-generator.ts    # Generate audio from podcast script, not digest text
+└── src/lib/prompts.ts             # AUDIO_SCRIPT_PROMPT (done in 5.2)
+```
+
+**Changes:**
+1. In `digest-generator.ts`: After generating the sectioned digest, make a **second LLM call**
+   using `AUDIO_SCRIPT_PROMPT` to convert the sectioned markdown into a conversational podcast script.
+   Use this script as TTS input instead of the raw `summary_text`.
+2. In `tts-client.ts`: Keep `en-US-Standard-D` voice (free tier). The podcast-style
+   audio script prompt provides the conversational quality improvement instead.
+
+**Audio cost analysis:**
+- Standard-D voice: ~$0.004/day (free tier covers it)
+- Journey voice: ~$0.03/day ($0.90/month) — skipped for cost optimization
+- Standard-D + podcast script prompt is adequate for news briefings
+
+**Deliverables:**
+- [ ] Separate audio script generation (LLM call #2 in digest pipeline)
+- [ ] Keep Standard-D voice (free tier)
+- [ ] Audio script stored or passed through (not stored — ephemeral)
+
+**Commit:** `feat(tts): podcast-style audio script with Standard voice`
+
+---
+
+### Task 5.6: Homepage UI — Render Structured Digest
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — File:** `src/app/page.tsx`
+
+**Changes:**
+1. Replace plain paragraph rendering with structured section rendering
+2. Parse `summary_text` markdown sections and render with visual hierarchy:
+   - Section headers with Lucide icons (Zap for "Big Picture", Rocket for "Key Releases",
+     Eye for "Worth Watching", Lightbulb for "Developer Takeaway")
+   - Bullet points rendered as styled list items
+   - Key stats/numbers highlighted in accent color
+3. Keep backwards compatibility: if `summary_text` doesn't have sections (old digests),
+   fall back to current paragraph rendering
+
+**Deliverables:**
+- [ ] Section-aware digest renderer on homepage
+- [ ] Icon mapping for section headers
+- [ ] Backwards-compatible with old plain-text digests
+- [ ] Responsive layout (stacked on mobile, side-by-side on desktop)
+
+**Commit:** `feat(home): render structured digest sections with icons`
+
+---
+
+### Task 5.7: News Feed UI — Add Category Filter
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — Files:**
+```
+├── src/app/api/news/route.ts       # Add category query param
+├── src/app/news/page.tsx            # Fetch distinct categories for filter
+├── src/app/news/news-feed.tsx       # Add category FilterBar
+└── src/app/news/[slug]/page.tsx     # Show category badge on detail page
+```
+
+**Changes:**
+1. **API:** Add `category` query param to `GET /api/news` — `.eq('category', category)`
+2. **Server component:** Fetch distinct categories (like `getSources()` pattern)
+3. **Client component:** Add second FilterBar row for categories (LLM / Agents / Models / Research / All)
+4. **Detail page:** Show category badge next to source badge
+
+**Deliverables:**
+- [ ] API supports `?category=llm` filter
+- [ ] Category filter bar on /news page
+- [ ] Category badge on article detail page
+- [ ] Category included in article card display
+
+**Commit:** `feat(news): add category filter to news feed and API`
+
+---
+
+### Task 5.8: Update Tests
+
+**Branch:** `feature/phase5-llm-pivot`
+**Status:** ⏳ Not Started
+
+**Scope — Files:**
+```
+├── src/lib/__tests__/prompts.test.ts           # Update for new prompt format
+├── src/lib/__tests__/summariser.test.ts         # Add category/relevance tests
+├── src/lib/__tests__/digest-generator.test.ts   # Add low-volume + category tests
+```
+
+**Test cases to add:**
+- Prompts: `buildDailyDigestInput` includes category, new `buildAudioScriptInput` works
+- Summariser: JSON response parsing, category extraction, relevance threshold skip,
+  JSON parse failure fallback, `ai_metadata` stored correctly
+- Digest: Category filter applied, low-volume day → expanded lookback,
+  ultra-low-volume → skip, audio script LLM call made
+
+**Deliverables:**
+- [ ] Updated prompt tests
+- [ ] New summariser tests for classification + filtering
+- [ ] New digest tests for category filter + low-volume handling
+- [ ] All existing tests still pass
+
+**Commit:** `test: update tests for category filtering and structured summaries`
+
+---
+
+### Phase 5 Integration
+
+1. Verify: `npm run build && npm run lint && npm test` (all pass)
+2. Merge `feature/phase5-llm-pivot` → `develop` (--no-ff)
+3. Verify again on develop
+4. Merge `develop` → `main` (--no-ff)
+
+**User action required after merge:**
+- Run migration `009_add_category_and_metadata.sql` in Supabase SQL Editor
+- Existing articles will have `category = NULL` and `ai_metadata = NULL`
+- Re-summarise existing articles to populate categories (run summarise CRON manually)
+
+---
 
 ### Task 0.1: Infrastructure Setup (Can run in parallel)
 
