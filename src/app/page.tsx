@@ -101,7 +101,7 @@ export default async function Home() {
                   .split("\n\n")
                   .filter(Boolean)
                   .slice(0, 3)
-                  .map((paragraph, i) => (
+                  .map((paragraph: string, i: number) => (
                     <p
                       key={i}
                       className={

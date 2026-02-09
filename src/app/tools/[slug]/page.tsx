@@ -144,7 +144,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
         {/* Tags */}
         {tool.tags && tool.tags.length > 0 && (
           <div className="flex gap-2 mt-4 flex-wrap">
-            {tool.tags.map((tag) => (
+            {tool.tags.map((tag: string) => (
               <span
                 key={tag}
                 className="text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full"
