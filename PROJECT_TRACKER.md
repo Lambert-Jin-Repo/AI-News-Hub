@@ -350,6 +350,18 @@ curl http://localhost:3000/api/health
 - ToolCard updated with internal linking via Next.js Link when slug present
 - Build, lint, and all 91 tests passing
 **Issues:** None.
+### 2026-02-09 — Antigravity — Navigation Polish
+**Status:** Complete
+**Summary:**
+- Implemented `FloatingControls` (Scroll To Top only)
+- Created `BackToHome` component (Minimalist House icon)
+- Positioned `BackToHome` in TOP-RIGHT of content area for News/Tools detail pages
+- Added `BackToHome` to `/news` and `/tools` listing pages
+- Created `/about` page with consistent navigation
+- Fixed broken "About" link in Global Header
+- Replaced manual "Back" links with Breadcrumbs in `/news/[slug]` and `/tools/[slug]`
+- Fixed missing imports/exports
+**Issues:** None.
 **Next:** Phase 3 complete. User action: run migrations 006 + 007 in Supabase SQL Editor.
 
 ### 2026-02-09 — Claude Opus — Branch: feature/phase2-summaries → develop → main

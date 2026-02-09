@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { FloatingControls } from "@/components/ui/FloatingControls";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -31,6 +32,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <FloatingControls />
         </ThemeProvider>
       </body>
     </html>
