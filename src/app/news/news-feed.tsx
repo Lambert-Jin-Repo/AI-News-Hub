@@ -19,14 +19,16 @@ type ArticleRow = Pick<
   | "ai_summary"
   | "summary_status"
   | "is_featured"
+  | "category"
 >;
 
 interface NewsFeedProps {
   initialArticles: ArticleRow[];
   sources: string[];
+  categories?: string[];
 }
 
-export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
+export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeedProps) {
   const [articles, setArticles] = useState<ArticleRow[]>(initialArticles);
   const [nextCursor, setNextCursor] = useState<string | null>(
     initialArticles.length >= 20 && initialArticles[initialArticles.length - 1]?.published_at
@@ -36,12 +38,14 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const fetchArticles = useCallback(
-    async (params: { q?: string; source?: string; cursor?: string }) => {
+    async (params: { q?: string; source?: string; category?: string; cursor?: string }) => {
       const url = new URL("/api/news", window.location.origin);
       if (params.q) url.searchParams.set("q", params.q);
       if (params.source) url.searchParams.set("source", params.source);
+      if (params.category) url.searchParams.set("category", params.category);
       if (params.cursor) url.searchParams.set("cursor", params.cursor);
 
       const res = await fetch(url.toString());
@@ -58,14 +62,14 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
     async (query: string) => {
       setSearchQuery(query);
       setLoading(true);
-      const data = await fetchArticles({ q: query, source: selectedSource });
+      const data = await fetchArticles({ q: query, source: selectedSource, category: selectedCategory });
       if (data) {
         setArticles(data.articles);
         setNextCursor(data.nextCursor);
       }
       setLoading(false);
     },
-    [fetchArticles, selectedSource]
+    [fetchArticles, selectedSource, selectedCategory]
   );
 
   const handleSourceFilter = useCallback(
@@ -75,6 +79,7 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
       const data = await fetchArticles({
         q: searchQuery,
         source: source || undefined,
+        category: selectedCategory || undefined,
       });
       if (data) {
         setArticles(data.articles);
@@ -82,7 +87,25 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
       }
       setLoading(false);
     },
-    [fetchArticles, searchQuery]
+    [fetchArticles, searchQuery, selectedCategory]
+  );
+
+  const handleCategoryFilter = useCallback(
+    async (category: string) => {
+      setSelectedCategory(category);
+      setLoading(true);
+      const data = await fetchArticles({
+        q: searchQuery,
+        source: selectedSource || undefined,
+        category: category || undefined,
+      });
+      if (data) {
+        setArticles(data.articles);
+        setNextCursor(data.nextCursor);
+      }
+      setLoading(false);
+    },
+    [fetchArticles, searchQuery, selectedSource]
   );
 
   const handleLoadMore = useCallback(async () => {
@@ -91,6 +114,7 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
     const data = await fetchArticles({
       q: searchQuery || undefined,
       source: selectedSource || undefined,
+      category: selectedCategory || undefined,
       cursor: nextCursor,
     });
     if (data) {
@@ -98,11 +122,16 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
       setNextCursor(data.nextCursor);
     }
     setLoading(false);
-  }, [fetchArticles, nextCursor, loading, searchQuery, selectedSource]);
+  }, [fetchArticles, nextCursor, loading, searchQuery, selectedSource, selectedCategory]);
 
-  const filterOptions = [
+  const sourceOptions = [
     { label: "All Sources", value: "" },
     ...sources.map((s) => ({ label: s, value: s })),
+  ];
+
+  const categoryOptions = [
+    { label: "All Topics", value: "" },
+    ...categories.map((c) => ({ label: c.toUpperCase(), value: c })),
   ];
 
   return (
@@ -116,9 +145,16 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
         />
         {sources.length > 0 && (
           <FilterBar
-            options={filterOptions}
+            options={sourceOptions}
             selected={selectedSource}
             onChange={handleSourceFilter}
+          />
+        )}
+        {categories.length > 0 && (
+          <FilterBar
+            options={categoryOptions}
+            selected={selectedCategory}
+            onChange={handleCategoryFilter}
           />
         )}
       </div>
@@ -141,6 +177,7 @@ export function NewsFeed({ initialArticles, sources }: NewsFeedProps) {
             thumbnailUrl={article.thumbnail_url}
             description={article.ai_summary || article.raw_excerpt}
             summaryStatus={article.summary_status}
+            category={article.category}
           />
         ))}
       </div>

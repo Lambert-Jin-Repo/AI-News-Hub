@@ -14,6 +14,7 @@ export interface NewsCardProps {
   thumbnailUrl?: string | null;
   description: string | null;
   summaryStatus?: SummaryStatus;
+  category?: string | null;
   className?: string;
 }
 
@@ -25,6 +26,7 @@ export function NewsCard({
   thumbnailUrl,
   description,
   summaryStatus = "completed",
+  category,
   className,
 }: NewsCardProps) {
   const timeDisplay = publishedAt ? formatRelativeTime(publishedAt) : "";
@@ -64,6 +66,11 @@ export function NewsCard({
             <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-300">
               {source}
             </span>
+            {category && (
+              <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                {category}
+              </span>
+            )}
             {timeDisplay && (
               <>
                 <span className="text-[10px] text-gray-300 dark:text-gray-500">

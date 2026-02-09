@@ -8,13 +8,14 @@ export async function GET(request: NextRequest) {
 
   const q = searchParams.get('q')?.trim() || '';
   const source = searchParams.get('source')?.trim() || '';
+  const category = searchParams.get('category')?.trim() || '';
   const cursor = searchParams.get('cursor') || '';
   const limitParam = Number(searchParams.get('limit') || 20);
   const limit = Math.min(Math.max(limitParam, 1), 50);
 
   let query = supabase
     .from('articles')
-    .select('id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured');
+    .select('id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured, category');
 
   // Full-text search
   if (q) {
@@ -24,6 +25,11 @@ export async function GET(request: NextRequest) {
   // Source filter
   if (source) {
     query = query.eq('source', source);
+  }
+
+  // Category filter
+  if (category) {
+    query = query.eq('category', category);
   }
 
   // Cursor pagination — fetch articles before this published_at value

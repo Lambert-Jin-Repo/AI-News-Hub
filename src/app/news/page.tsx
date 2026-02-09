@@ -13,7 +13,7 @@ async function getInitialArticles() {
   const { data } = await supabase
     .from("articles")
     .select(
-      "id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured"
+      "id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured, category"
     )
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(20);
@@ -32,10 +32,22 @@ async function getSources() {
   return unique.sort();
 }
 
+async function getCategories(): Promise<string[]> {
+  const { data } = await supabase
+    .from("articles")
+    .select("category")
+    .not("category", "is", null)
+    .order("category");
+
+  if (!data) return [];
+  return [...new Set(data.map((d) => d.category as string).filter(Boolean))];
+}
+
 export default async function NewsPage() {
-  const [articles, sources] = await Promise.all([
+  const [articles, sources, categories] = await Promise.all([
     getInitialArticles(),
     getSources(),
+    getCategories(),
   ]);
 
   return (
@@ -46,7 +58,11 @@ export default async function NewsPage() {
         </h1>
         <BackToHome variant="icon" />
       </div>
-      <NewsFeed initialArticles={articles} sources={sources} />
+      <NewsFeed
+        initialArticles={articles}
+        sources={sources}
+        categories={categories}
+      />
     </main>
   );
 }
