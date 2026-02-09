@@ -20,8 +20,9 @@ export interface TTSResult {
 
 /**
  * Generate speech audio from text using Google Cloud TTS.
- * Uses Standard voice (free tier: 1M chars/month).
- * 
+ * Uses Standard-D voice (free tier: 1M chars/month).
+ * Input is expected to be a podcast-style script (see AUDIO_SCRIPT_PROMPT).
+ *
  * Requires GOOGLE_APPLICATION_CREDENTIALS env var pointing to
  * a GCP service account JSON file with Text-to-Speech API enabled.
  */
@@ -34,7 +35,7 @@ export async function generateSpeech(text: string): Promise<TTSResult> {
         input: { text: processedText },
         voice: {
             languageCode: 'en-US',
-            name: 'en-US-Standard-D', // Male voice, good for news
+            name: 'en-US-Standard-D', // Free tier voice — cost optimization
             ssmlGender: 'MALE',
         },
         audioConfig: {
