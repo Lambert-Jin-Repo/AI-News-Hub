@@ -29,13 +29,17 @@
   :root {
     --background: #F5F5F0;
     --foreground: #0d1b1a;
+    --muted-foreground: #556966;
     --surface: #FFFFFF;
+    --border: #e7f3f2;
   }
 
   .dark {
     --background: #102220;
     --foreground: #f3f4f6;
+    --muted-foreground: #9ca3af;
     --surface: #1A2E2C;
+    --border: #2A3E3C;
   }
 
   body {

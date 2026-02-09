@@ -174,7 +174,6 @@ async function main(): Promise<void> {
     }
 
     const successCount = results.filter((r) => r.status === 'success').length;
-    const failedCount = results.filter((r) => r.status === 'failed').length;
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
     console.log('\n' + '='.repeat(60));

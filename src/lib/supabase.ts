@@ -17,6 +17,7 @@ export interface Article {
   ai_summary: string | null;
   summary_status: 'pending' | 'completed' | 'failed_safety' | 'failed_quota' | 'skipped';
   is_featured: boolean;
+  is_archived: boolean;
 }
 
 export interface DailyDigest {
