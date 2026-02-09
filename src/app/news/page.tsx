@@ -2,7 +2,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { NewsFeed } from "./news-feed";
 import { BackToHome } from "@/components/ui/BackToHome";
 
-export const revalidate = 3600;
+export const revalidate = 300; // 5 minutes — news updates frequently
 
 export const metadata = {
   title: "AI News — AI News Hub",

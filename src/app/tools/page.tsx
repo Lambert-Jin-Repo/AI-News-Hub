@@ -3,7 +3,7 @@ import { DEFAULTS } from "@/lib/constants";
 import { ToolsFeed } from "./tools-feed";
 import { BackToHome } from "@/components/ui/BackToHome";
 
-export const revalidate = 3600;
+export const revalidate = 3600; // 1 hour — tools change infrequently
 
 export const metadata = {
   title: "AI Tools Directory — AI News Hub",
