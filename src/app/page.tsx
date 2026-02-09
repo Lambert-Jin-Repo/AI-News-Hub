@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { NewsCard, type NewsCardProps } from "@/components/cards/NewsCard";
+import { NewsCard } from "@/components/cards/NewsCard";
+import { supabase } from "@/lib/supabase";
 import {
   PlayCircle,
   Share2,
@@ -12,65 +14,63 @@ import {
   Mail,
 } from "lucide-react";
 
-const todayFormatted = new Date().toLocaleDateString("en-AU", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
+export const revalidate = 3600;
 
-// Mock data — will be replaced by Supabase queries in Phase 1
-const mockArticles: NewsCardProps[] = [
-  {
-    source: "TechCrunch",
-    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    title: "OpenAI Announces GPT-5 Developer Preview",
-    description:
-      "The new model promises enhanced reasoning capabilities and reduced hallucination rates for enterprise applications.",
-    url: "#",
-  },
-  {
-    source: "Wired",
-    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    title: "Nvidia Unveils Next-Gen Inference Chip",
-    description:
-      "The H200 chip aims to slash LLM running costs by 50% while doubling memory bandwidth for larger models.",
-    url: "#",
-  },
-  {
-    source: "The Verge",
-    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    title: "DeepMind Solves Protein Folding Anomaly",
-    description:
-      "AlphaFold 3 cracks a decades-old biological problem, potentially accelerating drug discovery for rare diseases.",
-    url: "#",
-  },
-  {
-    source: "Reuters",
-    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    title: "EU AI Act Enters Final Negotiation Phase",
-    description:
-      "Lawmakers debate stringent requirements for foundational models and exemptions for open-source research.",
-    url: "#",
-  },
-  {
-    source: "GitHub Blog",
-    publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    title: "Copilot X Adds Voice Coding Features",
-    description:
-      "Developers can now control their IDE entirely through voice commands, a boon for accessibility.",
-    url: "#",
-  },
-  {
-    source: "Ars Technica",
-    publishedAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
-    title: "Prompt Injection Vulnerability Found",
-    description:
-      "Researchers demonstrate how hidden text on websites can manipulate AI assistants into leaking private data.",
-    url: "#",
-  },
-];
+async function getLatestDigest() {
+  const { data } = await supabase
+    .from("daily_digests")
+    .select("id, digest_date, summary_text, audio_url, audio_status")
+    .order("digest_date", { ascending: false })
+    .limit(1)
+    .single();
 
-export default function Home() {
+  return data;
+}
+
+async function getLatestArticles() {
+  const { data } = await supabase
+    .from("articles")
+    .select(
+      "id, title, slug, url, source, published_at, thumbnail_url, raw_excerpt, ai_summary, summary_status, is_featured"
+    )
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(6);
+
+  return data || [];
+}
+
+async function getStats() {
+  const [articlesRes, toolsRes, digestsRes] = await Promise.all([
+    supabase.from("articles").select("id", { count: "exact", head: true }),
+    supabase
+      .from("tools")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true),
+    supabase
+      .from("daily_digests")
+      .select("id", { count: "exact", head: true }),
+  ]);
+
+  return {
+    articles: articlesRes.count ?? 0,
+    tools: toolsRes.count ?? 0,
+    digests: digestsRes.count ?? 0,
+  };
+}
+
+export default async function Home() {
+  const [digest, articles, stats] = await Promise.all([
+    getLatestDigest(),
+    getLatestArticles(),
+    getStats(),
+  ]);
+
+  const todayFormatted = new Date().toLocaleDateString("en-AU", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -96,23 +96,29 @@ export default function Home() {
               Your Daily <span className="text-primary">AI Briefing</span>
             </h1>
             <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-200 space-y-4">
-              <p className="text-lg leading-relaxed">
-                Today&apos;s top story involves a significant leap in multimodal
-                models. Major labs have released benchmarks showing a 40%
-                efficiency gain in reasoning tasks, signaling a shift away from
-                pure parameter scaling towards architectural optimization.
-              </p>
-              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
-                In regulatory news, the EU AI Act continues to spark debate over
-                open-source liabilities, while Silicon Valley sees a surge in
-                &apos;vertical AI&apos; startups focusing on legal and medical
-                applications.
-              </p>
-              <p className="text-base leading-relaxed dark:opacity-100 opacity-90">
-                Meanwhile, hardware constraints are easing as new dedicated
-                inference chips hit the market, potentially lowering the cost of
-                running LLMs locally by half within the next quarter.
-              </p>
+              {digest?.summary_text ? (
+                digest.summary_text
+                  .split("\n\n")
+                  .filter(Boolean)
+                  .slice(0, 3)
+                  .map((paragraph: string, i: number) => (
+                    <p
+                      key={i}
+                      className={
+                        i === 0
+                          ? "text-lg leading-relaxed"
+                          : "text-base leading-relaxed dark:opacity-100 opacity-90"
+                      }
+                    >
+                      {paragraph}
+                    </p>
+                  ))
+              ) : (
+                <p className="text-lg leading-relaxed text-gray-400">
+                  No digest available yet. Check back soon for today&apos;s AI
+                  briefing.
+                </p>
+              )}
             </div>
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-4">
               <button className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all cursor-pointer">
@@ -136,60 +142,78 @@ export default function Home() {
                   <div className="bg-primary/10 p-2 rounded-full text-primary">
                     <Headphones className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-gray-400 dark:text-gray-300">
-                    12:45 MIN
-                  </span>
+                  {digest?.audio_status === "completed" && (
+                    <span className="text-xs font-bold text-gray-400 dark:text-gray-300">
+                      AUDIO READY
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-lg font-bold text-[#0d1b1a] dark:text-white mb-1">
                   Today&apos;s Audio Briefing
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-300">
-                  Listen to the key highlights on the go.
+                  {digest?.audio_url
+                    ? "Listen to the key highlights on the go."
+                    : "Audio briefing not yet available."}
                 </p>
               </div>
               <div className="flex items-center gap-4 mt-6">
-                <button className="size-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/25 hover:scale-105 transition-transform cursor-pointer">
-                  <Play className="w-6 h-6 fill-current" />
-                </button>
-                <div className="flex items-center gap-1 h-8 flex-1">
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.1s", height: "15px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.3s", height: "25px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.5s", height: "10px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.2s", height: "30px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.4s", height: "18px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.1s", height: "22px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.6s", height: "12px" }}
-                  ></div>
-                  <div
-                    className="waveform-bar"
-                    style={{ animationDelay: "0.3s", height: "28px" }}
-                  ></div>
-                </div>
+                {digest?.audio_url ? (
+                  <audio controls className="w-full h-10">
+                    <source src={digest.audio_url} type="audio/mpeg" />
+                  </audio>
+                ) : (
+                  <>
+                    <button
+                      disabled
+                      className="size-12 rounded-full bg-gray-300 dark:bg-gray-600 text-white flex items-center justify-center cursor-not-allowed"
+                    >
+                      <Play className="w-6 h-6 fill-current" />
+                    </button>
+                    <div className="flex items-center gap-1 h-8 flex-1">
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.1s", height: "15px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.3s", height: "25px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.5s", height: "10px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.2s", height: "30px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.4s", height: "18px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.1s", height: "22px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.6s", height: "12px" }}
+                      ></div>
+                      <div
+                        className="waveform-bar"
+                        style={{ animationDelay: "0.3s", height: "28px" }}
+                      ></div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Featured Tool Card */}
-            <div className="bg-[#102220] rounded-[16px] shadow-soft p-6 flex flex-col justify-center relative overflow-hidden group cursor-pointer">
+            <Link
+              href="/tools"
+              className="bg-[#102220] rounded-[16px] shadow-soft p-6 flex flex-col justify-center relative overflow-hidden group cursor-pointer no-underline"
+            >
               {/* Decorative shapes */}
               <div className="absolute top-0 right-0 size-32 bg-primary/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
               <div className="relative z-10">
@@ -205,17 +229,13 @@ export default function Home() {
                 <p className="text-gray-300 text-sm mb-4">
                   Discover the latest productivity apps and models.
                 </p>
-                <div className="flex -space-x-3">
-                  {/* Avatars would go here, using placeholders for now */}
-                  <div className="size-8 rounded-full border-2 border-[#102220] bg-gray-500"></div>
-                  <div className="size-8 rounded-full border-2 border-[#102220] bg-gray-400"></div>
-                  <div className="size-8 rounded-full border-2 border-[#102220] bg-gray-300"></div>
-                  <div className="size-8 rounded-full border-2 border-[#102220] bg-gray-700 text-white text-[10px] font-bold flex items-center justify-center">
-                    +45
-                  </div>
+                <div className="flex items-center">
+                  <span className="text-white text-sm font-bold">
+                    {stats.tools > 0 ? `${stats.tools} tools` : "Explore directory"}
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 
@@ -227,7 +247,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
-                150+
+                {stats.articles}
               </p>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Articles Scanned
@@ -240,10 +260,10 @@ export default function Home() {
             </div>
             <div>
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
-                45+
+                {stats.tools}
               </p>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
-                New AI Tools
+                AI Tools
               </p>
             </div>
           </div>
@@ -253,7 +273,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
-                7
+                {stats.digests}
               </p>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-300">
                 Daily Briefings
@@ -268,19 +288,34 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-[#0d1b1a] dark:text-white">
               Latest Headlines
             </h2>
-            <a
-              href="#"
-              className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
+            <Link
+              href="/news"
+              className="text-sm font-bold text-primary hover:underline flex items-center gap-1 no-underline"
             >
               View Archive
               <ArrowRight className="w-4 h-4" />
-            </a>
+            </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockArticles.map((article) => (
-              <NewsCard key={article.title} {...article} />
-            ))}
-          </div>
+          {articles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {articles.map((article) => (
+                <NewsCard
+                  key={article.id}
+                  title={article.title}
+                  url={article.slug ? `/news/${article.slug}` : article.url}
+                  source={article.source || "Unknown"}
+                  publishedAt={article.published_at}
+                  thumbnailUrl={article.thumbnail_url}
+                  description={article.ai_summary || article.raw_excerpt}
+                  summaryStatus={article.summary_status}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-400">
+              <p>No articles yet. News will appear here once the pipeline runs.</p>
+            </div>
+          )}
         </div>
       </main>
 
