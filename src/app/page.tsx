@@ -103,11 +103,20 @@ export default async function Home() {
     getStats(),
   ]);
 
-  const todayFormatted = new Date().toLocaleDateString("en-AU", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  // Use digest date if available, otherwise use a static server-side date
+  // This prevents hydration mismatch from timezone differences
+  const displayDate = digest?.digest_date
+    ? new Date(digest.digest_date + 'T00:00:00').toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+    : new Date().toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: "Australia/Perth", // Force consistent timezone (AWST)
+    });
 
   const digestSections = digest?.summary_text
     ? parseDigestSections(digest.summary_text)
@@ -131,7 +140,7 @@ export default async function Home() {
                 </span>
               </div>
               <span className="text-[#4c9a93] dark:text-[#6bb5ae] text-sm font-medium">
-                {todayFormatted}
+                {displayDate}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#0d1b1a] dark:text-white leading-[1.15] mb-6">
