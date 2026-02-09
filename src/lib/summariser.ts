@@ -2,6 +2,7 @@ import pLimit from 'p-limit';
 import { generateText, LLMError } from './llm-client';
 import { ARTICLE_SUMMARY_PROMPT, buildArticleSummaryInput } from './prompts';
 import { getAdminClient } from './supabase';
+import { RELEVANCE_THRESHOLD } from './constants';
 
 // Minimal article fields needed for summarisation
 type ArticleForSummary = {
@@ -15,11 +16,61 @@ export type SummarisationResult = {
     id: string;
     status: 'completed' | 'failed_safety' | 'failed_quota' | 'skipped';
     summary?: string;
+    category?: string;
+    metadata?: Record<string, unknown>;
     error?: string;
 };
 
+// Structured response from the LLM
+export interface ArticleLLMResponse {
+    classification: string;
+    relevance_score: number;
+    tldr: string;
+    key_points: string[];
+    tech_stack: string[];
+    why_it_matters: string;
+}
+
+/**
+ * Parse the JSON response from the LLM.
+ * Returns null if the response is not valid JSON or missing required fields.
+ */
+export function parseLLMResponse(text: string): ArticleLLMResponse | null {
+    try {
+        // Strip markdown code fences if present
+        const cleaned = text.replace(/^```json?\n?/m, '').replace(/\n?```$/m, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        // Validate required fields
+        if (!parsed.classification || typeof parsed.relevance_score !== 'number') {
+            return null;
+        }
+        return parsed as ArticleLLMResponse;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Format a parsed LLM response into readable markdown for ai_summary.
+ */
+function formatSummaryMarkdown(parsed: ArticleLLMResponse): string {
+    const lines: string[] = [];
+    lines.push(parsed.tldr);
+    lines.push('');
+    if (parsed.key_points.length > 0) {
+        parsed.key_points.forEach((point: string) => lines.push(`- ${point}`));
+        lines.push('');
+    }
+    if (parsed.why_it_matters) {
+        lines.push(`**Why it matters:** ${parsed.why_it_matters}`);
+    }
+    return lines.join('\n');
+}
+
 /**
  * Summarise a single article using the LLM client.
+ * Parses JSON response to extract classification, relevance, and structured summary.
  */
 async function summariseArticle(article: ArticleForSummary): Promise<SummarisationResult> {
     try {
@@ -30,7 +81,36 @@ async function summariseArticle(article: ArticleForSummary): Promise<Summarisati
         });
 
         const response = await generateText(ARTICLE_SUMMARY_PROMPT, input);
+        const parsed = parseLLMResponse(response.text);
 
+        if (parsed) {
+            // Check relevance threshold
+            if (parsed.relevance_score < RELEVANCE_THRESHOLD) {
+                return {
+                    id: article.id,
+                    status: 'skipped',
+                    category: parsed.classification,
+                    metadata: {
+                        relevance_score: parsed.relevance_score,
+                        tech_stack: parsed.tech_stack,
+                    },
+                    error: `Low relevance score: ${parsed.relevance_score}/${RELEVANCE_THRESHOLD}`,
+                };
+            }
+
+            return {
+                id: article.id,
+                status: 'completed',
+                summary: formatSummaryMarkdown(parsed),
+                category: parsed.classification,
+                metadata: {
+                    relevance_score: parsed.relevance_score,
+                    tech_stack: parsed.tech_stack,
+                },
+            };
+        }
+
+        // Fallback: JSON parse failed, store raw text
         return {
             id: article.id,
             status: 'completed',
@@ -105,13 +185,13 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
 
     // Update database with results
     for (const result of results) {
-        const updateData: Record<string, string> = {
+        const updateData: Record<string, unknown> = {
             summary_status: result.status,
         };
 
-        if (result.summary) {
-            updateData.ai_summary = result.summary;
-        }
+        if (result.summary) updateData.ai_summary = result.summary;
+        if (result.category) updateData.category = result.category;
+        if (result.metadata) updateData.ai_metadata = result.metadata;
 
         await supabase.from('articles').update(updateData).eq('id', result.id);
     }

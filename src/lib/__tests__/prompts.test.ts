@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildArticleSummaryInput, buildDailyDigestInput } from '../prompts';
+import { buildArticleSummaryInput, buildDailyDigestInput, buildAudioScriptInput } from '../prompts';
 
 describe('buildArticleSummaryInput', () => {
   it('includes title, source, and excerpt', () => {
@@ -50,33 +50,42 @@ describe('buildArticleSummaryInput', () => {
 });
 
 describe('buildDailyDigestInput', () => {
-  it('formats articles as a numbered list', () => {
+  it('formats articles as a numbered list with category prefix', () => {
     const result = buildDailyDigestInput([
-      { title: 'Story A', ai_summary: 'Summary of A', source: 'TechCrunch' },
-      { title: 'Story B', ai_summary: 'Summary of B', source: 'Wired' },
+      { title: 'Story A', ai_summary: 'Summary of A', source: 'TechCrunch', category: 'llm' },
+      { title: 'Story B', ai_summary: 'Summary of B', source: 'Wired', category: 'agents' },
     ]);
 
     expect(result).toContain("Today's top AI news stories:");
-    expect(result).toContain('1. [TechCrunch] Story A');
+    expect(result).toContain('1. [LLM] [TechCrunch] Story A');
     expect(result).toContain('   Summary of A');
-    expect(result).toContain('2. [Wired] Story B');
+    expect(result).toContain('2. [AGENTS] [Wired] Story B');
     expect(result).toContain('   Summary of B');
   });
 
   it('uses "Unknown" when source is null', () => {
     const result = buildDailyDigestInput([
-      { title: 'Story C', ai_summary: 'Summary of C', source: null },
+      { title: 'Story C', ai_summary: 'Summary of C', source: null, category: 'models' },
     ]);
 
-    expect(result).toContain('1. [Unknown] Story C');
+    expect(result).toContain('1. [MODELS] [Unknown] Story C');
   });
 
   it('shows fallback when ai_summary is null', () => {
     const result = buildDailyDigestInput([
-      { title: 'Story D', ai_summary: null, source: 'Reuters' },
+      { title: 'Story D', ai_summary: null, source: 'Reuters', category: 'llm' },
     ]);
 
     expect(result).toContain('(no summary available)');
+  });
+
+  it('handles null category gracefully', () => {
+    const result = buildDailyDigestInput([
+      { title: 'Story E', ai_summary: 'Summary', source: 'BBC', category: null },
+    ]);
+
+    expect(result).toContain('1.  [BBC] Story E');
+    expect(result).not.toContain('[NULL]');
   });
 
   it('handles empty array', () => {
@@ -85,5 +94,21 @@ describe('buildDailyDigestInput', () => {
     expect(result).toContain("Today's top AI news stories:");
     // Should just have the header with no numbered items
     expect(result).not.toContain('1.');
+  });
+});
+
+describe('buildAudioScriptInput', () => {
+  it('wraps digest text with instruction prefix', () => {
+    const result = buildAudioScriptInput('## The Big Picture\nSome content here.');
+
+    expect(result).toContain('Written briefing to convert to podcast script:');
+    expect(result).toContain('## The Big Picture');
+    expect(result).toContain('Some content here.');
+  });
+
+  it('handles empty digest text', () => {
+    const result = buildAudioScriptInput('');
+
+    expect(result).toContain('Written briefing to convert to podcast script:');
   });
 });
