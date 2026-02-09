@@ -3,13 +3,14 @@
  * Storage Cleanup Script
  * 
  * This script performs two cleanup operations:
- * 1. Archives articles older than 90 days (sets is_archived = true)
- * 2. Deletes audio files from digests bucket older than 30 days
+ * 1. Archives articles older than ARTICLE_RETENTION_DAYS (sets is_archived = true)
+ * 2. Deletes audio files from digests bucket older than AUDIO_RETENTION_DAYS
  * 
  * Run: npx tsx scripts/cleanup-storage.ts
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { ARTICLE_RETENTION_DAYS, AUDIO_RETENTION_DAYS } from '../src/lib/constants';
 
 // Environment validation
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -22,8 +23,8 @@ if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
-const ARTICLE_ARCHIVE_DAYS = 90;
-const AUDIO_DELETE_DAYS = 30;
+const ARTICLE_ARCHIVE_DAYS = ARTICLE_RETENTION_DAYS;
+const AUDIO_DELETE_DAYS = AUDIO_RETENTION_DAYS;
 const DIGESTS_BUCKET = 'digests';
 
 interface CleanupResult {

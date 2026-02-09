@@ -55,5 +55,10 @@ export const DEFAULTS = {
   TOOL_CHECK_FAIL_THRESHOLD: 2,
 } as const;
 
+// Cost optimization limits
+export const MAX_ARTICLES_PER_DAY = 20;
+export const ARTICLE_RETENTION_DAYS = 30;
+export const AUDIO_RETENTION_DAYS = 14;
+
 // HTTP headers used for cron job auth
 export const CRON_AUTH_HEADER = 'x-cron-secret';

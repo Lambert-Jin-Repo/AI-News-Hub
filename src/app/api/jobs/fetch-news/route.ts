@@ -2,6 +2,7 @@ import { verifyCronAuth, unauthorizedResponse, successResponse, errorResponse } 
 import { getAdminClient, type Source } from '@/lib/supabase';
 import { fetchRSS, type FetchedArticle } from '@/lib/fetchers/rss-fetcher';
 import { fetchGNews } from '@/lib/fetchers/gnews-fetcher';
+import { MAX_ARTICLES_PER_DAY } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -68,6 +69,21 @@ export async function POST(request: Request) {
       return successResponse({ message: 'No active sources', results: [] });
     }
 
+    // Check daily article limit
+    const today = new Date().toISOString().split('T')[0];
+    const { count: todayCount } = await admin
+      .from('articles')
+      .select('id', { count: 'exact', head: true })
+      .gte('fetched_at', today);
+
+    let remaining = MAX_ARTICLES_PER_DAY - (todayCount ?? 0);
+    if (remaining <= 0) {
+      return successResponse({
+        status: 'skipped',
+        reason: 'Daily article limit reached',
+      });
+    }
+
     const results: FetchResult[] = [];
 
     for (const source of sources as Source[]) {
@@ -93,8 +109,11 @@ export async function POST(request: Request) {
       let inserted = 0;
       let skipped = 0;
 
+      // Limit articles to insert based on remaining daily quota
+      const articlesToInsert = articles.slice(0, remaining);
+
       // Insert articles one by one to handle conflicts gracefully
-      for (const article of articles) {
+      for (const article of articlesToInsert) {
         const { error: insertError } = await admin
           .from('articles')
           .insert({
@@ -130,12 +149,16 @@ export async function POST(request: Request) {
         })
         .eq('id', source.id);
 
+      remaining -= inserted;
+
       results.push({
         source: source.name,
         fetched: articles.length,
         inserted,
         skipped,
       });
+
+      if (remaining <= 0) break;
     }
 
     const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
