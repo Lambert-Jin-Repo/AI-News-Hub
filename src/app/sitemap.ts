@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ainewshub.dev';
 
@@ -31,6 +31,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.5,
         },
     ];
+
+    // Get Supabase client (null during build if env vars missing)
+    const supabase = getSupabaseClient();
+
+    // If no Supabase client (during build), return only static pages
+    if (!supabase) {
+        return staticPages;
+    }
 
     // Dynamic article pages
     const { data: articles } = await supabase
@@ -69,3 +77,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [...staticPages, ...articlePages, ...toolPages];
 }
+
