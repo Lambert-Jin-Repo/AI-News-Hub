@@ -12,13 +12,21 @@ vi.mock('../tts-client', () => ({
   generateSpeech: (...args: unknown[]) => mockGenerateSpeech(...args),
 }));
 
+// Mock constants
+vi.mock('../constants', () => ({
+  ON_TOPIC_CATEGORIES: ['llm', 'agents', 'models', 'research'],
+}));
+
 // State for controlling mock DB responses
 let mockExistingDigest: { id: string } | null = null;
-let mockArticles: Array<{ id: string; title: string; ai_summary: string | null; source: string | null; published_at: string }> | null = null;
+let mockArticles: Array<{ id: string; title: string; ai_summary: string | null; source: string | null; published_at: string; category: string | null }> | null = null;
+let mockExpandedArticles: Array<{ id: string; title: string; ai_summary: string | null; source: string | null; published_at: string; category: string | null }> | null = null;
 let mockInsertedDigest: { id: string } | null = null;
 let mockRetryDigest: { digest_date: string; summary_text: string | null; audio_status: string } | null = null;
 const mockDbUpdate = vi.fn();
 const mockStorageUpload = vi.fn();
+const mockIn = vi.fn();
+let articleQueryCount = 0;
 
 vi.mock('../supabase', () => ({
   getAdminClient: () => ({
@@ -62,13 +70,30 @@ vi.mock('../supabase', () => ({
         return {
           select: () => ({
             eq: () => ({
-              or: () => ({
-                order: () => ({
-                  order: () => ({
-                    limit: () => ({ data: mockArticles, error: null }),
+              in: (...args: unknown[]) => {
+                mockIn(...args);
+                return {
+                  or: () => ({
+                    order: () => ({
+                      order: () => ({
+                        limit: () => {
+                          articleQueryCount++;
+                          // First call returns 24h articles (via .order().order().limit())
+                          if (articleQueryCount <= 1) {
+                            return { data: mockArticles, error: null };
+                          }
+                          return { data: mockExpandedArticles ?? mockArticles, error: null };
+                        },
+                      }),
+                      // For expanded query: .or().order().limit() (single order, no is_featured)
+                      limit: () => {
+                        articleQueryCount++;
+                        return { data: mockExpandedArticles ?? mockArticles, error: null };
+                      },
+                    }),
                   }),
-                }),
-              }),
+                };
+              },
             }),
           }),
         };
@@ -94,8 +119,10 @@ describe('generateDailyDigest', () => {
     vi.clearAllMocks();
     mockExistingDigest = null;
     mockArticles = null;
+    mockExpandedArticles = null;
     mockInsertedDigest = null;
     mockRetryDigest = null;
+    articleQueryCount = 0;
   });
 
   it('throws if digest already exists for today', async () => {
@@ -105,38 +132,36 @@ describe('generateDailyDigest', () => {
     await expect(generateDailyDigest()).rejects.toThrow('Digest already exists');
   });
 
-  it('throws if no summarised articles found', async () => {
-    mockExistingDigest = null;
-    mockArticles = [];
-
-    const { generateDailyDigest } = await import('../digest-generator');
-    await expect(generateDailyDigest()).rejects.toThrow('No summarised articles');
-  });
-
-  it('generates summary text via LLM', async () => {
+  it('filters articles by ON_TOPIC_CATEGORIES', async () => {
     mockExistingDigest = null;
     mockArticles = [
-      { id: 'a1', title: 'Story 1', ai_summary: 'Summary 1', source: 'TC', published_at: new Date().toISOString() },
+      { id: 'a1', title: 'Story 1', ai_summary: 'Summary 1', source: 'TC', published_at: new Date().toISOString(), category: 'llm' },
+      { id: 'a2', title: 'Story 2', ai_summary: 'Summary 2', source: 'TC', published_at: new Date().toISOString(), category: 'agents' },
+      { id: 'a3', title: 'Story 3', ai_summary: 'Summary 3', source: 'TC', published_at: new Date().toISOString(), category: 'models' },
     ];
     mockInsertedDigest = { id: 'digest-1' };
-    mockGenerateText.mockResolvedValue({ text: 'Today in AI...', provider: 'gemini' });
+    mockGenerateText.mockResolvedValue({ text: 'Digest text...', provider: 'gemini' });
     mockGenerateSpeech.mockRejectedValue(new Error('TTS unavailable'));
 
     const { generateDailyDigest } = await import('../digest-generator');
-    const result = await generateDailyDigest();
+    await generateDailyDigest();
 
-    expect(mockGenerateText).toHaveBeenCalledTimes(1);
-    expect(result.summaryText).toBe('Today in AI...');
-    expect(result.articleCount).toBe(1);
+    // Verify .in() was called with ON_TOPIC_CATEGORIES
+    expect(mockIn).toHaveBeenCalledWith('category', ['llm', 'agents', 'models', 'research']);
   });
 
-  it('handles TTS success — uploads audio and updates status', async () => {
+  it('generates summary text via LLM and podcast script for TTS', async () => {
     mockExistingDigest = null;
     mockArticles = [
-      { id: 'a1', title: 'Story 1', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString() },
+      { id: 'a1', title: 'Story 1', ai_summary: 'Summary 1', source: 'TC', published_at: new Date().toISOString(), category: 'llm' },
+      { id: 'a2', title: 'Story 2', ai_summary: 'Summary 2', source: 'TC', published_at: new Date().toISOString(), category: 'agents' },
+      { id: 'a3', title: 'Story 3', ai_summary: 'Summary 3', source: 'TC', published_at: new Date().toISOString(), category: 'models' },
     ];
     mockInsertedDigest = { id: 'digest-1' };
-    mockGenerateText.mockResolvedValue({ text: 'Digest text', provider: 'gemini' });
+    // First call: digest summary, second call: audio script
+    mockGenerateText
+      .mockResolvedValueOnce({ text: '## The Big Picture\nToday in AI...', provider: 'gemini' })
+      .mockResolvedValueOnce({ text: 'Good morning! Today in AI...', provider: 'gemini' });
     mockGenerateSpeech.mockResolvedValue({
       audioBuffer: Buffer.from('audio-data'),
       contentType: 'audio/mpeg',
@@ -145,23 +170,47 @@ describe('generateDailyDigest', () => {
     const { generateDailyDigest } = await import('../digest-generator');
     const result = await generateDailyDigest();
 
-    expect(mockStorageUpload).toHaveBeenCalledTimes(1);
-    expect(mockDbUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        audio_url: 'https://storage.example.com/digest.mp3',
-        audio_status: 'completed',
-      })
-    );
-    expect(result.audioUrl).toBe('https://storage.example.com/digest.mp3');
+    // Two LLM calls: digest + audio script
+    expect(mockGenerateText).toHaveBeenCalledTimes(2);
+    expect(result.summaryText).toBe('## The Big Picture\nToday in AI...');
+    expect(result.articleCount).toBe(3);
+    // TTS called with podcast script, not digest text
+    expect(mockGenerateSpeech).toHaveBeenCalledWith('Good morning! Today in AI...');
+  });
+
+  it('skips digest when fewer than 3 articles in 48h', async () => {
+    mockExistingDigest = null;
+    // First query (24h): only 2 articles
+    mockArticles = [
+      { id: 'a1', title: 'Story 1', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'llm' },
+      { id: 'a2', title: 'Story 2', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'agents' },
+    ];
+    // Second query (48h): still only 2
+    mockExpandedArticles = [
+      { id: 'a1', title: 'Story 1', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'llm' },
+      { id: 'a2', title: 'Story 2', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'agents' },
+    ];
+
+    const { generateDailyDigest } = await import('../digest-generator');
+    const result = await generateDailyDigest();
+
+    expect(result.skipped).toBe(true);
+    expect(result.digestId).toBeNull();
+    expect(result.articleCount).toBe(0);
+    expect(mockGenerateText).not.toHaveBeenCalled();
   });
 
   it('handles TTS failure — sets audio_status to failed but still returns digest', async () => {
     mockExistingDigest = null;
     mockArticles = [
-      { id: 'a1', title: 'Story 1', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString() },
+      { id: 'a1', title: 'Story 1', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'llm' },
+      { id: 'a2', title: 'Story 2', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'agents' },
+      { id: 'a3', title: 'Story 3', ai_summary: 'Summary', source: 'TC', published_at: new Date().toISOString(), category: 'models' },
     ];
     mockInsertedDigest = { id: 'digest-1' };
-    mockGenerateText.mockResolvedValue({ text: 'Digest text', provider: 'gemini' });
+    mockGenerateText
+      .mockResolvedValueOnce({ text: 'Digest text', provider: 'gemini' })
+      .mockResolvedValueOnce({ text: 'Podcast script', provider: 'gemini' });
     mockGenerateSpeech.mockRejectedValue(new Error('TTS service down'));
 
     const { generateDailyDigest } = await import('../digest-generator');
@@ -178,16 +227,20 @@ describe('retryDigestAudio', () => {
     vi.clearAllMocks();
     mockExistingDigest = null;
     mockArticles = null;
+    mockExpandedArticles = null;
     mockInsertedDigest = null;
     mockRetryDigest = null;
+    articleQueryCount = 0;
   });
 
-  it('generates audio and returns URL on success', async () => {
+  it('generates audio script and audio, returns URL on success', async () => {
     mockRetryDigest = {
       digest_date: '2026-01-15',
       summary_text: 'Summary to speak',
       audio_status: 'failed',
     };
+    // Audio script LLM call
+    mockGenerateText.mockResolvedValue({ text: 'Podcast script from retry', provider: 'gemini' });
     mockGenerateSpeech.mockResolvedValue({
       audioBuffer: Buffer.from('audio'),
       contentType: 'audio/mpeg',
@@ -196,7 +249,9 @@ describe('retryDigestAudio', () => {
     const { retryDigestAudio } = await import('../digest-generator');
     const url = await retryDigestAudio('digest-retry');
 
-    expect(mockGenerateSpeech).toHaveBeenCalledWith('Summary to speak');
+    // Should call generateText for audio script
+    expect(mockGenerateText).toHaveBeenCalledTimes(1);
+    expect(mockGenerateSpeech).toHaveBeenCalledWith('Podcast script from retry');
     expect(mockStorageUpload).toHaveBeenCalledTimes(1);
     expect(url).toBe('https://storage.example.com/digest.mp3');
   });

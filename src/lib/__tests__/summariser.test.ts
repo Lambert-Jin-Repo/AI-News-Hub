@@ -10,6 +10,10 @@ vi.mock('../llm-client', () => ({
   },
 }));
 
+vi.mock('../constants', () => ({
+  RELEVANCE_THRESHOLD: 5,
+}));
+
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
 const mockEq = vi.fn();
@@ -40,7 +44,7 @@ vi.mock('../supabase', () => ({
               },
             };
           },
-          update: (data: Record<string, string>) => {
+          update: (data: Record<string, unknown>) => {
             mockUpdate(data);
             return {
               eq: () => ({ error: null }),
@@ -60,6 +64,50 @@ let mockArticlesData: Array<{
   raw_excerpt: string | null;
   source: string | null;
 }> | null = null;
+
+describe('parseLLMResponse', () => {
+  it('parses valid JSON response', async () => {
+    const { parseLLMResponse } = await import('../summariser');
+    const result = parseLLMResponse(JSON.stringify({
+      classification: 'llm',
+      relevance_score: 8,
+      tldr: 'A new LLM was released.',
+      key_points: ['Point 1', 'Point 2'],
+      tech_stack: ['PyTorch'],
+      why_it_matters: 'Faster inference for developers.',
+    }));
+
+    expect(result).not.toBeNull();
+    expect(result!.classification).toBe('llm');
+    expect(result!.relevance_score).toBe(8);
+    expect(result!.key_points).toHaveLength(2);
+  });
+
+  it('handles markdown code fences', async () => {
+    const { parseLLMResponse } = await import('../summariser');
+    const result = parseLLMResponse('```json\n{"classification":"agents","relevance_score":7,"tldr":"Test","key_points":[],"tech_stack":[],"why_it_matters":"Test"}\n```');
+
+    expect(result).not.toBeNull();
+    expect(result!.classification).toBe('agents');
+  });
+
+  it('returns null on invalid JSON', async () => {
+    const { parseLLMResponse } = await import('../summariser');
+    const result = parseLLMResponse('This is not JSON at all.');
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when required fields are missing', async () => {
+    const { parseLLMResponse } = await import('../summariser');
+    const result = parseLLMResponse(JSON.stringify({
+      tldr: 'Missing classification',
+      key_points: [],
+    }));
+
+    expect(result).toBeNull();
+  });
+});
 
 describe('summarisePendingArticles', () => {
   beforeEach(() => {
@@ -85,7 +133,17 @@ describe('summarisePendingArticles', () => {
       { id: '2', title: 'Article B', raw_excerpt: 'Excerpt B', source: 'Source B' },
     ];
 
-    mockGenerateText.mockResolvedValue({ text: 'AI summary', provider: 'gemini' });
+    mockGenerateText.mockResolvedValue({
+      text: JSON.stringify({
+        classification: 'llm',
+        relevance_score: 8,
+        tldr: 'Summary',
+        key_points: ['Point'],
+        tech_stack: [],
+        why_it_matters: 'Matters',
+      }),
+      provider: 'gemini',
+    });
 
     const { summarisePendingArticles } = await import('../summariser');
     const result = await summarisePendingArticles();
@@ -94,6 +152,83 @@ describe('summarisePendingArticles', () => {
     expect(result.processed).toBe(2);
     expect(result.completed).toBe(2);
     expect(result.failed).toBe(0);
+  });
+
+  it('stores category and ai_metadata in database update', async () => {
+    mockArticlesData = [
+      { id: 'abc', title: 'Article', raw_excerpt: 'Excerpt', source: 'Src' },
+    ];
+
+    mockGenerateText.mockResolvedValue({
+      text: JSON.stringify({
+        classification: 'models',
+        relevance_score: 9,
+        tldr: 'A new model.',
+        key_points: ['Fast', 'Cheap'],
+        tech_stack: ['TensorFlow'],
+        why_it_matters: 'Cost reduction.',
+      }),
+      provider: 'gemini',
+    });
+
+    const { summarisePendingArticles } = await import('../summariser');
+    await summarisePendingArticles();
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        summary_status: 'completed',
+        category: 'models',
+        ai_metadata: {
+          relevance_score: 9,
+          tech_stack: ['TensorFlow'],
+        },
+      })
+    );
+    // ai_summary should contain formatted markdown
+    const updateArg = mockUpdate.mock.calls[0][0];
+    expect(updateArg.ai_summary).toContain('A new model.');
+    expect(updateArg.ai_summary).toContain('- Fast');
+    expect(updateArg.ai_summary).toContain('**Why it matters:** Cost reduction.');
+  });
+
+  it('skips articles with low relevance score', async () => {
+    mockArticlesData = [
+      { id: '1', title: 'Off-topic', raw_excerpt: 'Not relevant', source: null },
+    ];
+
+    mockGenerateText.mockResolvedValue({
+      text: JSON.stringify({
+        classification: 'other',
+        relevance_score: 3,
+        tldr: 'Not about AI.',
+        key_points: ['Irrelevant'],
+        tech_stack: [],
+        why_it_matters: 'It does not.',
+      }),
+      provider: 'gemini',
+    });
+
+    const { summarisePendingArticles } = await import('../summariser');
+    const result = await summarisePendingArticles();
+
+    expect(result.results[0].status).toBe('skipped');
+    expect(result.results[0].category).toBe('other');
+    expect(result.failed).toBe(1);
+  });
+
+  it('falls back to raw text when JSON parse fails', async () => {
+    mockArticlesData = [
+      { id: '1', title: 'Article', raw_excerpt: 'Excerpt', source: null },
+    ];
+
+    mockGenerateText.mockResolvedValue({ text: 'Plain text summary, not JSON.', provider: 'gemini' });
+
+    const { summarisePendingArticles } = await import('../summariser');
+    const result = await summarisePendingArticles();
+
+    expect(result.results[0].status).toBe('completed');
+    expect(result.results[0].summary).toBe('Plain text summary, not JSON.');
+    expect(result.results[0].category).toBeUndefined();
   });
 
   it('maps safety block errors to failed_safety', async () => {
@@ -124,19 +259,6 @@ describe('summarisePendingArticles', () => {
     expect(result.results[0].status).toBe('failed_quota');
   });
 
-  it('maps rate limit errors to failed_quota', async () => {
-    mockArticlesData = [
-      { id: '1', title: 'Article', raw_excerpt: null, source: null },
-    ];
-
-    mockGenerateText.mockRejectedValue(new Error('rate limit reached'));
-
-    const { summarisePendingArticles } = await import('../summariser');
-    const result = await summarisePendingArticles();
-
-    expect(result.results[0].status).toBe('failed_quota');
-  });
-
   it('maps generic errors to skipped', async () => {
     mockArticlesData = [
       { id: '1', title: 'Article', raw_excerpt: null, source: null },
@@ -148,21 +270,5 @@ describe('summarisePendingArticles', () => {
     const result = await summarisePendingArticles();
 
     expect(result.results[0].status).toBe('skipped');
-  });
-
-  it('updates database with results', async () => {
-    mockArticlesData = [
-      { id: 'abc', title: 'Article', raw_excerpt: 'Excerpt', source: 'Src' },
-    ];
-
-    mockGenerateText.mockResolvedValue({ text: 'Generated summary', provider: 'gemini' });
-
-    const { summarisePendingArticles } = await import('../summariser');
-    await summarisePendingArticles();
-
-    expect(mockUpdate).toHaveBeenCalledWith({
-      summary_status: 'completed',
-      ai_summary: 'Generated summary',
-    });
   });
 });

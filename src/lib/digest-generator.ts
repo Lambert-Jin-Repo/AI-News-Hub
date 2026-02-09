@@ -38,7 +38,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
 
     // Fetch on-topic articles from last 24 hours with completed summaries
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    let { data: articles, error: fetchError } = await supabase
+    const { data, error: fetchError } = await supabase
         .from('articles')
         .select('id, title, ai_summary, source, published_at, category')
         .eq('summary_status', 'completed')
@@ -51,6 +51,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
     if (fetchError) {
         throw new Error(`Failed to fetch articles: ${fetchError.message}`);
     }
+    let articles = data;
 
     // Low-volume handling: expand lookback to 48h
     if (!articles || articles.length < 3) {
