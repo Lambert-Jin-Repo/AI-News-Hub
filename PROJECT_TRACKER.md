@@ -70,17 +70,16 @@
 
 ---
 
-## Current Sprint: Phase 0 — Environment & Guardrails
+## Current Sprint: Phase 1 — News Fetching & Display
 
 ### Branch Strategy
 
 ```
 main (stable)
   └── develop (integration)
-        ├── feature/phase0-infrastructure    [Agent 1]
-        ├── feature/phase0-database          [Agent 2]
-        ├── feature/phase0-components        [Agent 3]
-        └── feature/phase0-utilities         [Agent 4]
+        ├── feature/phase1-rss-fetcher      [Task 1.1]
+        ├── feature/phase1-news-pages       [Task 1.2]
+        └── feature/phase1-api-routes       [Task 1.3]
 ```
 
 ### Active Agent Assignments
