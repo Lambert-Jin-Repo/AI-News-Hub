@@ -8,6 +8,7 @@ const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
   weight: ["200", "300", "400", "500", "600", "700", "800"],
+  display: "swap", // Prevent FOIT (Flash of Invisible Text)
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ainewshub.dev';
