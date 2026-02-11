@@ -2,18 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Terminal, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const navLinks = [
-  { href: "/", label: "Home", active: true },
+  { href: "/", label: "Home" },
   { href: "/news", label: "News" },
   { href: "/tools", label: "Tools" },
+  { href: "/digests", label: "Digests" },
   { href: "/about", label: "About" },
 ];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-[var(--surface)]/90 backdrop-blur-md border-b border-[#e7f3f2] dark:border-[#2A3E3C]">
@@ -35,7 +41,7 @@ export function Header() {
               key={link.label}
               href={link.href}
               className={
-                link.active
+                isActive(link.href)
                   ? "text-[#0d1b1a] dark:text-gray-200 text-sm font-semibold hover:text-primary transition-colors"
                   : "text-[#556966] dark:text-gray-300 text-sm font-medium hover:text-primary transition-colors"
               }
@@ -45,12 +51,9 @@ export function Header() {
           ))}
         </div>
 
-        {/* Desktop: Theme Toggle & CTA */}
+        {/* Desktop: Theme Toggle */}
         <div className="hidden md:flex items-center gap-4">
           <ThemeToggle />
-          <button className="flex items-center justify-center px-6 h-10 border border-primary text-primary hover:bg-primary hover:text-white rounded-full text-sm font-bold transition-all duration-300 cursor-pointer">
-            Subscribe
-          </button>
         </div>
 
         {/* Mobile Menu Button */}
@@ -78,7 +81,7 @@ export function Header() {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 className={
-                  link.active
+                  isActive(link.href)
                     ? "block py-3 text-[#0d1b1a] dark:text-white font-semibold hover:text-primary transition-colors"
                     : "block py-3 text-[#556966] dark:text-gray-300 font-medium hover:text-primary transition-colors"
                 }
@@ -86,11 +89,8 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
               <ThemeToggle />
-              <button className="px-6 h-10 border border-primary text-primary hover:bg-primary hover:text-white rounded-full text-sm font-bold transition-all duration-300 cursor-pointer">
-                Subscribe
-              </button>
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import { ToolCard } from "@/components/cards/ToolCard";
+import { ToolCardSkeleton } from "@/components/cards/ToolCardSkeleton";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterBar } from "@/components/ui/FilterBar";
 import type { Tool } from "@/lib/supabase";
@@ -33,15 +35,17 @@ const pricingOptions = [
   { label: "Paid", value: "paid" },
 ];
 
+type LoadingType = "idle" | "refresh" | "more";
+
 export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
   const [tools, setTools] = useState<ToolRow[]>(initialTools);
-  const [nextCursor, setNextCursor] = useState<string | null>(
-    initialTools.length >= DEFAULTS.TOOLS_PER_PAGE &&
-      initialTools[initialTools.length - 1]?.date_added
-      ? initialTools[initialTools.length - 1].date_added
-      : null
-  );
-  const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(() => {
+    const last = initialTools[initialTools.length - 1];
+    return initialTools.length >= DEFAULTS.TOOLS_PER_PAGE && last?.date_added
+      ? `${last.date_added}|${last.id}`
+      : null;
+  });
+  const [loadingType, setLoadingType] = useState<LoadingType>("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedPricing, setSelectedPricing] = useState("");
@@ -72,7 +76,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
   const handleSearch = useCallback(
     async (query: string) => {
       setSearchQuery(query);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchTools({
         q: query,
         category: selectedCategory,
@@ -82,7 +86,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
         setTools(data.tools);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchTools, selectedCategory, selectedPricing]
   );
@@ -90,7 +94,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
   const handleCategoryFilter = useCallback(
     async (category: string) => {
       setSelectedCategory(category);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchTools({
         q: searchQuery,
         category: category || undefined,
@@ -100,7 +104,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
         setTools(data.tools);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchTools, searchQuery, selectedPricing]
   );
@@ -108,7 +112,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
   const handlePricingFilter = useCallback(
     async (pricing: string) => {
       setSelectedPricing(pricing);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchTools({
         q: searchQuery,
         category: selectedCategory || undefined,
@@ -118,14 +122,14 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
         setTools(data.tools);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchTools, searchQuery, selectedCategory]
   );
 
   const handleLoadMore = useCallback(async () => {
-    if (!nextCursor || loading) return;
-    setLoading(true);
+    if (!nextCursor || loadingType !== "idle") return;
+    setLoadingType("more");
     const data = await fetchTools({
       q: searchQuery || undefined,
       category: selectedCategory || undefined,
@@ -136,8 +140,8 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
       setTools((prev) => [...prev, ...data.tools]);
       setNextCursor(data.nextCursor);
     }
-    setLoading(false);
-  }, [fetchTools, nextCursor, loading, searchQuery, selectedCategory, selectedPricing]);
+    setLoadingType("idle");
+  }, [fetchTools, nextCursor, loadingType, searchQuery, selectedCategory, selectedPricing]);
 
   const categoryOptions = [
     { label: "All Categories", value: "" },
@@ -170,37 +174,63 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
       </div>
 
       {/* Tool grid */}
-      {tools.length === 0 && !loading && (
-        <p className="text-center text-gray-500 dark:text-gray-400 py-12">
-          No tools found.
-        </p>
+      {loadingType === "refresh" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ToolCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <>
+          {tools.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-12">
+              No tools found.
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tools.map((tool) => (
+              <ToolCard
+                key={tool.id}
+                name={tool.name}
+                slug={tool.slug}
+                description={tool.description}
+                url={tool.url || "#"}
+                category={tool.category || "Uncategorized"}
+                pricingModel={tool.pricing_model}
+                tags={tool.tags || []}
+                logoUrl={tool.logo_url}
+              />
+            ))}
+          </div>
+
+          {/* Load more skeletons */}
+          {loadingType === "more" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <ToolCardSkeleton key={i} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tools.map((tool) => (
-          <ToolCard
-            key={tool.id}
-            name={tool.name}
-            slug={tool.slug}
-            description={tool.description}
-            url={tool.url || "#"}
-            category={tool.category || "Uncategorized"}
-            pricingModel={tool.pricing_model}
-            tags={tool.tags || []}
-            logoUrl={tool.logo_url}
-          />
-        ))}
-      </div>
-
-      {/* Load more */}
-      {nextCursor && (
+      {/* Load more button */}
+      {nextCursor && loadingType !== "refresh" && (
         <div className="flex justify-center mt-8">
           <button
             onClick={handleLoadMore}
-            disabled={loading}
-            className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
+            disabled={loadingType !== "idle"}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {loading ? "Loading..." : "Load more"}
+            {loadingType === "more" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load more"
+            )}
           </button>
         </div>
       )}

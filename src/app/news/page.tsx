@@ -1,6 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase";
 import { NewsFeed } from "./news-feed";
-import { BackToHome } from "@/components/ui/BackToHome";
 
 export const revalidate = 300; // 5 minutes — news updates frequently
 
@@ -65,12 +64,9 @@ export default async function NewsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
-          AI News
-        </h1>
-        <BackToHome variant="icon" />
-      </div>
+      <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-6">
+        AI News
+      </h1>
       <NewsFeed
         initialArticles={articles}
         sources={sources}

@@ -3,6 +3,8 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { FloatingControls } from "@/components/ui/FloatingControls";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -109,7 +111,11 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <div className="flex-grow">{children}</div>
+            <Footer />
+          </div>
           <FloatingControls />
         </ThemeProvider>
       </body>

@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ExternalLink, Clock } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { BackToHome } from "@/components/ui/BackToHome";
 import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { SummaryStatus } from "@/lib/constants";
@@ -104,11 +104,8 @@ export default async function ArticleDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      {/* Back link */}
-      <div className="flex items-center justify-between mb-8">
-        <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-0" />
-        <BackToHome variant="icon" />
-      </div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-8" />
 
       {/* Article header */}
       <article>
@@ -192,7 +189,7 @@ export default async function ArticleDetailPage({
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {relatedArticles.map((related) => (
-              <a
+              <Link
                 key={related.id}
                 href={related.slug ? `/news/${related.slug}` : "#"}
                 className="bg-[var(--surface)] rounded-xl p-4 shadow-soft hover:shadow-soft-hover transition-all border border-transparent hover:border-primary/20 no-underline group"
@@ -225,7 +222,7 @@ export default async function ArticleDetailPage({
                     )}
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </section>

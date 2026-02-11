@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import { NewsCard } from "@/components/cards/NewsCard";
+import { NewsCardSkeleton } from "@/components/cards/NewsCardSkeleton";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterBar } from "@/components/ui/FilterBar";
 import type { Article } from "@/lib/supabase";
@@ -28,14 +30,17 @@ interface NewsFeedProps {
   categories?: string[];
 }
 
+type LoadingType = "idle" | "refresh" | "more";
+
 export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeedProps) {
   const [articles, setArticles] = useState<ArticleRow[]>(initialArticles);
-  const [nextCursor, setNextCursor] = useState<string | null>(
-    initialArticles.length >= 20 && initialArticles[initialArticles.length - 1]?.published_at
-      ? initialArticles[initialArticles.length - 1].published_at
-      : null
-  );
-  const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(() => {
+    const last = initialArticles[initialArticles.length - 1];
+    return initialArticles.length >= 20 && last?.published_at
+      ? `${last.published_at}|${last.id}`
+      : null;
+  });
+  const [loadingType, setLoadingType] = useState<LoadingType>("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -61,13 +66,13 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
   const handleSearch = useCallback(
     async (query: string) => {
       setSearchQuery(query);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchArticles({ q: query, source: selectedSource, category: selectedCategory });
       if (data) {
         setArticles(data.articles);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchArticles, selectedSource, selectedCategory]
   );
@@ -75,7 +80,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
   const handleSourceFilter = useCallback(
     async (source: string) => {
       setSelectedSource(source);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchArticles({
         q: searchQuery,
         source: source || undefined,
@@ -85,7 +90,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
         setArticles(data.articles);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchArticles, searchQuery, selectedCategory]
   );
@@ -93,7 +98,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
   const handleCategoryFilter = useCallback(
     async (category: string) => {
       setSelectedCategory(category);
-      setLoading(true);
+      setLoadingType("refresh");
       const data = await fetchArticles({
         q: searchQuery,
         source: selectedSource || undefined,
@@ -103,14 +108,14 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
         setArticles(data.articles);
         setNextCursor(data.nextCursor);
       }
-      setLoading(false);
+      setLoadingType("idle");
     },
     [fetchArticles, searchQuery, selectedSource]
   );
 
   const handleLoadMore = useCallback(async () => {
-    if (!nextCursor || loading) return;
-    setLoading(true);
+    if (!nextCursor || loadingType !== "idle") return;
+    setLoadingType("more");
     const data = await fetchArticles({
       q: searchQuery || undefined,
       source: selectedSource || undefined,
@@ -121,8 +126,8 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
       setArticles((prev) => [...prev, ...data.articles]);
       setNextCursor(data.nextCursor);
     }
-    setLoading(false);
-  }, [fetchArticles, nextCursor, loading, searchQuery, selectedSource, selectedCategory]);
+    setLoadingType("idle");
+  }, [fetchArticles, nextCursor, loadingType, searchQuery, selectedSource, selectedCategory]);
 
   const sourceOptions = [
     { label: "All Sources", value: "" },
@@ -160,37 +165,63 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
       </div>
 
       {/* Article list */}
-      {articles.length === 0 && !loading && (
-        <p className="text-center text-gray-500 dark:text-gray-400 py-12">
-          No articles found.
-        </p>
+      {loadingType === "refresh" ? (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <NewsCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <>
+          {articles.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-12">
+              No articles found.
+            </p>
+          )}
+
+          <div className="space-y-4">
+            {articles.map((article) => (
+              <NewsCard
+                key={article.id}
+                title={article.title}
+                url={article.slug ? `/news/${article.slug}` : article.url}
+                source={article.source || "Unknown"}
+                publishedAt={article.published_at}
+                thumbnailUrl={article.thumbnail_url}
+                description={article.ai_summary || article.raw_excerpt}
+                summaryStatus={article.summary_status}
+                category={article.category}
+              />
+            ))}
+          </div>
+
+          {/* Load more skeletons */}
+          {loadingType === "more" && (
+            <div className="space-y-4 mt-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <NewsCardSkeleton key={i} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      <div className="space-y-4">
-        {articles.map((article) => (
-          <NewsCard
-            key={article.id}
-            title={article.title}
-            url={article.slug ? `/news/${article.slug}` : article.url}
-            source={article.source || "Unknown"}
-            publishedAt={article.published_at}
-            thumbnailUrl={article.thumbnail_url}
-            description={article.ai_summary || article.raw_excerpt}
-            summaryStatus={article.summary_status}
-            category={article.category}
-          />
-        ))}
-      </div>
-
-      {/* Load more */}
-      {nextCursor && (
+      {/* Load more button */}
+      {nextCursor && loadingType !== "refresh" && (
         <div className="flex justify-center mt-8">
           <button
             onClick={handleLoadMore}
-            disabled={loading}
-            className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
+            disabled={loadingType !== "idle"}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {loading ? "Loading..." : "Load more"}
+            {loadingType === "more" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load more"
+            )}
           </button>
         </div>
       )}

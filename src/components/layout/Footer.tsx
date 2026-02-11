@@ -11,7 +11,7 @@ export function Footer() {
         >
             <div className="max-w-7xl mx-auto px-6">
                 {/* Newsletter Section */}
-                <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+                <div id="newsletter" className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="text-center md:text-left">
                             <h3 className="text-lg font-bold text-[#0d1b1a] dark:text-white mb-2">
@@ -78,22 +78,22 @@ export function Footer() {
                             About
                         </Link>
                         <Link
-                            href="#"
+                            href="/news"
                             className="hover:text-primary transition-colors focus:outline-none focus:underline"
                         >
-                            Privacy Policy
+                            News
                         </Link>
                         <Link
-                            href="#"
+                            href="/tools"
                             className="hover:text-primary transition-colors focus:outline-none focus:underline"
                         >
-                            Terms of Service
+                            Tools
                         </Link>
                         <Link
-                            href="#"
+                            href="/digests"
                             className="hover:text-primary transition-colors focus:outline-none focus:underline"
                         >
-                            Contact
+                            Digests
                         </Link>
                     </nav>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -104,4 +104,3 @@ export function Footer() {
         </footer>
     );
 }
-
