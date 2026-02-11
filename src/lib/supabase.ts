@@ -66,6 +66,27 @@ export interface Source {
   last_error: string | null;
 }
 
+export interface WorkflowStep {
+  order: number;
+  toolSlug: string;
+  label: string;
+  description: string;
+  isOptional: boolean;
+}
+
+export interface Workflow {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  cost_category: 'free' | 'paid';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  estimated_minutes: number | null;
+  steps: WorkflowStep[];
+  is_active: boolean;
+  created_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Database type map (used for generic Supabase client typing)
 // ---------------------------------------------------------------------------
@@ -77,6 +98,7 @@ export interface Database {
       daily_digests: { Row: DailyDigest; Insert: Partial<DailyDigest> & Pick<DailyDigest, 'digest_date'>; Update: Partial<DailyDigest> };
       tools: { Row: Tool; Insert: Partial<Tool> & Pick<Tool, 'name'>; Update: Partial<Tool> };
       sources: { Row: Source; Insert: Partial<Source> & Pick<Source, 'name' | 'type'>; Update: Partial<Source> };
+      workflows: { Row: Workflow; Insert: Partial<Workflow> & Pick<Workflow, 'slug' | 'title'>; Update: Partial<Workflow> };
     };
   };
 }

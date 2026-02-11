@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 import { AppError, ErrorCode } from './errors';
+import { shouldUseGemini, recordGeminiCall, isNearLimit } from './llm-usage';
+import { logger } from './logger';
 
 export interface LLMResponse {
   text: string;
@@ -119,9 +121,21 @@ export async function generateText(
   const systemPrompt = buildSystemPrompt(taskPrompt);
   const wrappedContent = wrapUserContent(userContent);
 
+  // Check usage limit before trying Gemini
+  if (!shouldUseGemini()) {
+    logger.info('Gemini daily limit reached, routing directly to Groq');
+    return await callGroq(systemPrompt, wrappedContent, maxTokens);
+  }
+
+  if (isNearLimit()) {
+    logger.warn('Gemini daily usage at 80%, will fallback to Groq soon');
+  }
+
   // Try Gemini first
   try {
-    return await callGemini(systemPrompt, wrappedContent);
+    const result = await callGemini(systemPrompt, wrappedContent);
+    recordGeminiCall();
+    return result;
   } catch (geminiError) {
     // If it's a safety block, propagate immediately — Groq may also block
     if (AppError.isSafetyBlock(geminiError)) {

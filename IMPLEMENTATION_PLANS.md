@@ -4,7 +4,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-11
 
 ---
 
@@ -30,6 +30,7 @@
 | 5.6 | Homepage: Structured Digest UI | Ready | [Jump](#phase-56-homepage-ui--structured-digest) |
 | 5.7 | News Feed: Category Filter | Ready | [Jump](#phase-57-news-feed-ui--category-filter) |
 | 5.8 | Tests: Update & Expand | Ready | [Jump](#phase-58-update-tests) |
+| 6.1 | AI Workflows Feature | ✅ Complete | [Jump](#phase-6-ai-workflows-feature) |
 
 ---
 
@@ -2731,6 +2732,76 @@ After implementation:
 - Run migration `009_add_category_and_metadata.sql` in Supabase SQL Editor
 - Manually trigger summarise CRON to re-classify existing articles (optional)
 - Standard-D voice is used (free tier, no additional setup needed)
+
+---
+
+---
+
+# Phase 6: AI Workflows Feature — ✅ Complete
+
+**Branch:** `main` (direct)
+**Completed:** 2026-02-11
+**Prerequisites:** Phase 4 complete
+
+## What Was Built
+
+### 1. Database — `workflows` table (Migration 010)
+- UUID primary key, slug (unique), title, description, cost_category, difficulty, estimated_minutes
+- `steps` JSONB array: `{ order, toolSlug, label, description, isOptional }`
+- Indexes on `is_active` and `cost_category`
+- RLS: public read, service_role write
+
+### 2. Seed Script — `scripts/seed-workflows.ts`
+- 6 curated workflows seeded via Gemini API (with hand-written fallbacks)
+- Uses existing `generateText()` from `llm-client.ts`
+- Upsert pattern: updates existing rows, inserts new ones
+
+### 3. API Routes
+- `GET /api/workflows?cost_category=free|paid` — cached 1 hour
+- `POST /api/workflows/suggest` — AI workflow generation with rate limiting (10/min/IP)
+- `GET /api/admin/usage` — Gemini usage stats (protected by CRON_SECRET)
+
+### 4. Components
+- `WorkflowShowcase` — client component with Free/Paid/Random toggles + AI Suggest mode
+- `WorkflowPipeline` — horizontal step visualization with tool logos and arrow connectors
+- `WorkflowCard` — compact card for listing pages with tool logo row and badges
+
+### 5. Pages
+- `/tools` — WorkflowShowcase inserted between heading and ToolsFeed
+- `/tools/workflows` — all workflows grid (static, 1h revalidate)
+- `/tools/workflows/[slug]` — workflow detail with vertical stepper timeline
+- `/tools/[slug]` — "Used in Workflows" section added (JSONB containment query)
+
+### 6. Gemini Usage Monitor
+- `src/lib/llm-usage.ts` — in-memory daily counter (limit 230, resets at midnight UTC)
+- Integrated into `llm-client.ts` — proactive Groq routing when nearing 250 RPD limit
+- Warns at 80% usage in structured logs
+
+### Files Summary
+
+| File | Status |
+|------|--------|
+| `supabase/migrations/010_workflows_table.sql` | NEW |
+| `scripts/seed-workflows.ts` | NEW |
+| `src/lib/llm-usage.ts` | NEW |
+| `src/app/api/workflows/route.ts` | NEW |
+| `src/app/api/workflows/suggest/route.ts` | NEW |
+| `src/app/api/admin/usage/route.ts` | NEW |
+| `src/components/workflows/WorkflowShowcase.tsx` | NEW |
+| `src/components/workflows/WorkflowPipeline.tsx` | NEW |
+| `src/components/cards/WorkflowCard.tsx` | NEW |
+| `src/app/tools/workflows/page.tsx` | NEW |
+| `src/app/tools/workflows/[slug]/page.tsx` | NEW |
+| `src/app/tools/workflows/loading.tsx` | NEW |
+| `src/lib/supabase.ts` | MODIFIED — WorkflowStep, Workflow types |
+| `src/lib/llm-client.ts` | MODIFIED — usage monitor integration |
+| `src/app/tools/page.tsx` | MODIFIED — WorkflowShowcase section |
+| `src/app/tools/[slug]/page.tsx` | MODIFIED — "Used in Workflows" section |
+
+### Verification
+- `npx tsc --noEmit` — no errors
+- `npm test` — 99/99 tests pass
+- `npm run build` — successful, all routes registered
 
 ---
 

@@ -6,8 +6,8 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-09
-**Status:** Phase 5 — LLM Focus Pivot & Summary Enhancement
+**Last Updated:** 2026-02-11
+**Status:** Phase 6 — AI Workflows Feature (Complete)
 
 ---
 
@@ -61,6 +61,7 @@
 | 3 | Homepage, Tools & Tests | Weeks 6-7 | ✅ Complete | Phase 2 |
 | 4 | Polish & Launch | Weeks 8-9 | ✅ Complete | Phase 3 |
 | 5 | LLM Focus Pivot & Summary Enhancement | Weeks 10-11 | ⏳ Not Started | Phase 4 |
+| 6 | AI Workflows Feature | Week 12 | ✅ Complete | Phase 4 |
 
 **Status Legend:**
 - ⏳ Not Started
@@ -608,6 +609,58 @@ curl http://localhost:3000/api/health
 
 ---
 
+## Phase 6: AI Workflows Feature (Complete)
+
+> **Goal:** Add curated AI tool workflows and an AI-powered workflow suggestion feature to the Tools page.
+
+### What Was Added
+
+**New Feature: Curated AI Workflows**
+- `workflows` table in Supabase (migration 010) with steps stored as JSONB
+- 6 curated workflows seeded via Gemini-powered script (with fallback descriptions)
+- Workflow showcase section on `/tools` page with Free / Paid / Random toggles
+- All workflows listing at `/tools/workflows`
+- Workflow detail pages at `/tools/workflows/[slug]` with vertical stepper timeline
+- "Used in Workflows" section on individual tool detail pages
+
+**New Feature: AI Workflow Suggestion**
+- "Suggest" tab in WorkflowShowcase — users describe a goal, Gemini generates a 3-5 step pipeline
+- `POST /api/workflows/suggest` endpoint with rate limiting (10 req/min per IP)
+- In-memory tool cache (refreshed every 10 min) for fast prompt building
+- Validates all suggested tool slugs against the database
+
+**New Feature: Gemini Usage Monitor**
+- `src/lib/llm-usage.ts` — in-memory daily call counter (limit: 230, auto-reset at midnight UTC)
+- Integrated into `llm-client.ts` — proactively routes to Groq when nearing Gemini's 250 RPD limit
+- Warns at 80% usage, skips Gemini entirely at 230 calls
+- `GET /api/admin/usage` — usage stats endpoint (protected by CRON_SECRET)
+
+### Files Created (12)
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/010_workflows_table.sql` | DB migration |
+| `scripts/seed-workflows.ts` | Gemini-powered seed script |
+| `src/lib/llm-usage.ts` | Daily Gemini call counter |
+| `src/app/api/workflows/route.ts` | GET curated workflows |
+| `src/app/api/workflows/suggest/route.ts` | POST AI suggestion |
+| `src/app/api/admin/usage/route.ts` | GET usage stats |
+| `src/components/workflows/WorkflowShowcase.tsx` | Browse + Suggest UI |
+| `src/components/workflows/WorkflowPipeline.tsx` | Horizontal step pipeline |
+| `src/components/cards/WorkflowCard.tsx` | Card for listings |
+| `src/app/tools/workflows/page.tsx` | All workflows listing |
+| `src/app/tools/workflows/[slug]/page.tsx` | Workflow detail page |
+| `src/app/tools/workflows/loading.tsx` | Loading skeleton |
+
+### Files Modified (4)
+| File | Changes |
+|------|---------|
+| `src/lib/supabase.ts` | Added `WorkflowStep`, `Workflow` interfaces + DB type map |
+| `src/lib/llm-client.ts` | Integrated usage monitor |
+| `src/app/tools/page.tsx` | Added `WorkflowShowcase` section |
+| `src/app/tools/[slug]/page.tsx` | Added "Used in Workflows" section |
+
+---
+
 ## Agent Progress Log
 
 > Agents: Add your updates here in reverse chronological order.
@@ -619,6 +672,24 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-02-11 — Claude Opus — Branch: main
+**Status:** Complete
+**Summary:**
+- Phase 6: AI Workflows feature — full implementation
+- Migration 010: workflows table with JSONB steps, indexes, RLS policies
+- Seed script: 6 curated workflows with Gemini-generated descriptions (fallback to hand-written)
+- WorkflowShowcase component: Free/Paid/Random toggles + AI Suggest mode
+- WorkflowPipeline: horizontal step visualization with tool logos
+- WorkflowCard: compact card for listing pages
+- Workflow detail page: vertical stepper timeline (reuses digest-timeline pattern)
+- "Used in Workflows" section on tool detail pages (JSONB containment query)
+- Gemini usage monitor: proactive Groq routing at 230 calls/day
+- Admin usage endpoint for monitoring
+- API routes: GET /api/workflows, POST /api/workflows/suggest with rate limiting
+- All 99 existing tests passing, build clean, TypeScript clean
+**Issues:** None.
+**Next:** Phase 6 complete. Run migration 010 in Supabase, then seed with `npx tsx scripts/seed-workflows.ts`.
 
 ### 2026-02-06 22:25 — Antigravity — Branch: feature/phase0-components
 **Status:** In Progress

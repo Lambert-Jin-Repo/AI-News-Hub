@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
-import { getSupabaseClient } from "@/lib/supabase";
+import Link from "next/link";
+import { ExternalLink, ChevronRight } from "lucide-react";
+import { getSupabaseClient, type Workflow, type WorkflowStep } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { ToolCard } from "@/components/cards/ToolCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { BackToHome } from "@/components/ui/BackToHome";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -58,6 +58,20 @@ async function getRelatedTools(toolId: string, category: string | null) {
   return data || [];
 }
 
+async function getWorkflowsContainingTool(toolSlug: string): Promise<Workflow[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  // Query workflows where the steps JSONB array contains this tool slug
+  const { data } = await supabase
+    .from("workflows")
+    .select("*")
+    .eq("is_active", true)
+    .contains("steps", [{ toolSlug }] as unknown as string);
+
+  return (data as Workflow[]) || [];
+}
+
 export async function generateMetadata({ params }: ToolDetailProps) {
   const { slug } = await params;
   const tool = await getToolBySlug(slug);
@@ -81,16 +95,15 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
     notFound();
   }
 
-  const relatedTools = await getRelatedTools(tool.id, tool.category);
+  const [relatedTools, toolWorkflows] = await Promise.all([
+    getRelatedTools(tool.id, tool.category),
+    getWorkflowsContainingTool(slug),
+  ]);
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
-      {/* Back link */}
-
-      <div className="flex items-center justify-between mb-8">
-        <Breadcrumbs items={[{ label: "Tools", href: "/tools" }, { label: tool.name }]} className="mb-0" />
-        <BackToHome variant="icon" />
-      </div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: "Tools", href: "/tools" }, { label: tool.name }]} className="mb-8" />
 
       {/* Tool header */}
       <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-soft mb-8">
@@ -175,6 +188,36 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
           </div>
         )}
       </div>
+
+      {/* Used in Workflows */}
+      {toolWorkflows.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-bold text-[#0d1b1a] dark:text-white mb-4">
+            Used in Workflows
+          </h2>
+          <div className="space-y-3">
+            {toolWorkflows.map((w) => (
+              <Link
+                key={w.id}
+                href={`/tools/workflows/${w.slug}`}
+                className="flex items-center justify-between gap-3 bg-[var(--surface)] rounded-xl p-4 shadow-soft hover:shadow-soft-hover transition-all border border-transparent hover:border-primary/20 group no-underline"
+              >
+                <div>
+                  <h3 className="font-bold text-[#0d1b1a] dark:text-white group-hover:text-primary transition-colors text-sm">
+                    {w.title}
+                  </h3>
+                  {w.description && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">
+                      {w.description}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary shrink-0 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Related tools */}
       {relatedTools.length > 0 && (
