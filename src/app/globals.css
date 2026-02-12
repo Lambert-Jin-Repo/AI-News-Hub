@@ -154,3 +154,32 @@
     transform: scale(1);
   }
 }
+
+/* ── Theme Transition Overlay ── */
+.theme-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  animation: circle-expand 500ms ease-in-out forwards;
+}
+
+@keyframes circle-expand {
+  from {
+    clip-path: circle(0px at var(--cx) var(--cy));
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.45;
+  }
+  to {
+    clip-path: circle(var(--max-radius) at var(--cx) var(--cy));
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition-overlay {
+    animation-duration: 0.01ms;
+  }
+}

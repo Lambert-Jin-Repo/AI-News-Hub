@@ -109,7 +109,6 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
-          disableTransitionOnChange
         >
           <div className="min-h-screen flex flex-col">
             <Header />
