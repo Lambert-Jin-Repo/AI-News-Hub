@@ -1,7 +1,7 @@
 import { getSupabaseClient } from "@/lib/supabase";
 import { DigestTimeline } from "./digest-timeline";
 
-export const revalidate = 3600; // 1 hour
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Daily Digests — AI News Hub",
