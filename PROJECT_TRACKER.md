@@ -6,7 +6,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-19
 **Status:** Phase 6 — AI Workflows Feature (Complete)
 
 ---
@@ -672,6 +672,16 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-02-19 — Antigravity — Branch: main
+**Status:** Complete
+**Summary:**
+- Bug fix: Homepage showed stale/older dates on initial load — switched from ISR (`revalidate = 300`) to `dynamic = 'force-dynamic'` in `src/app/page.tsx`
+- Bug fix: Digests date navigation forward button skipped 2 days, backward button didn't work — `toISOString()` in `shiftDate()` and `todayString()` converted to UTC, causing a 1-day offset in AWST (UTC+8). Fixed by using local date formatting in `src/app/digests/digest-timeline.tsx`
+- Cleaned up 17 macOS duplicate files (` 2` suffix) from source directories
+- Build verified: homepage now renders dynamically (`ƒ`), all routes clean
+**Issues:** None.
+**Next:** N/A — bug fix complete.
 
 ### 2026-02-11 — Claude Opus — Branch: main
 **Status:** Complete

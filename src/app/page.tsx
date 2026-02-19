@@ -16,7 +16,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 
-export const revalidate = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
 async function getLatestDigest() {
   const supabase = getSupabaseClient();
