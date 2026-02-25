@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const VALID_CATEGORIES = new Set<string>(Object.values(ARTICLE_CATEGORY));
 // Compound cursor format: ISO_DATE|UUID
-const COMPOUND_CURSOR_RE = /^(\d{4}-\d{2}-\d{2}(T[\d:.]+Z?))\|(.+)$/;
+const COMPOUND_CURSOR_RE = /^(\d{4}-\d{2}-\d{2}T[\d:.\+\-Z]+)\|(.+)$/;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
