@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Headphones, Play, Pause } from "lucide-react";
 
 interface AudioPlayerCardProps {
-    digest: any;
+    digest: { audio_url?: string | null; audio_status?: string | null } | null;
 }
 
 export function AudioPlayerCard({ digest }: AudioPlayerCardProps) {

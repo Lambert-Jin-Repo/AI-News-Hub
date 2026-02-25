@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { FileText, PlayCircle } from "lucide-react";
 import { ShareButton } from "@/components/ui/ShareButton";
@@ -10,8 +11,8 @@ interface DigestSection {
 interface DailyBriefingHeroProps {
     displayDate: string;
     digestSections: DigestSection[] | null;
-    digest: any;
-    sectionIcons: Record<string, any>;
+    digest: { summary_text?: string | null } | null;
+    sectionIcons: Record<string, React.ComponentType<{ className?: string }>>;
 }
 
 function renderMarkdownInline(text: string): string {

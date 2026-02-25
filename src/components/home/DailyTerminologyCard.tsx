@@ -84,7 +84,7 @@ export function DailyTerminologyCard() {
                     </div>
                 ) : error ? (
                     <div className="text-sm text-muted-foreground text-center py-4">
-                        Could not load today's terminology.
+                        Could not load today&apos;s terminology.
                     </div>
                 ) : data ? (
                     <>
