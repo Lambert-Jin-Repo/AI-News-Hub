@@ -1,53 +1,56 @@
 /**
- * In-memory daily Gemini API call counter.
- * Proactively routes to Groq before hitting the 250 RPD free-tier limit.
- * Resets automatically at UTC midnight.
+ * LLM provider health and status tracking.
+ *
+ * With MiniMax Coding Plan (unlimited tokens, resets every 5hr),
+ * there's no need for RPD tracking. This module provides simple
+ * health checks and provider status reporting.
  */
 
-const DAILY_LIMIT = 230; // buffer of 20 below 250 RPD
-const WARNING_THRESHOLD = 0.8; // log warning at 80%
+import { logger } from './logger';
 
-let callCount = 0;
-let lastResetDate = '';
+/** Which LLM provider is currently active. */
+let activeProvider: 'minimax' | 'groq' = 'minimax';
+let lastHealthCheck: string | null = null;
+let consecutiveFailures = 0;
 
-function todayUTC(): string {
-  return new Date().toISOString().slice(0, 10);
+/**
+ * Check MiniMax API connectivity by verifying the API key is set.
+ * Returns true if MiniMax is configured and available.
+ */
+export function isMiniMaxConfigured(): boolean {
+  return !!process.env.MINIMAX_API_KEY;
 }
 
-function resetIfNewDay(): void {
-  const today = todayUTC();
-  if (lastResetDate !== today) {
-    callCount = 0;
-    lastResetDate = today;
+/**
+ * Record a successful call to update provider status.
+ */
+export function recordSuccess(provider: 'minimax' | 'groq'): void {
+  activeProvider = provider;
+  lastHealthCheck = new Date().toISOString();
+  if (provider === 'minimax') {
+    consecutiveFailures = 0;
   }
 }
 
-/** Record a successful Gemini API call. */
-export function recordGeminiCall(): void {
-  resetIfNewDay();
-  callCount++;
+/**
+ * Record a failed MiniMax call.
+ */
+export function recordFailure(): void {
+  consecutiveFailures++;
+  if (consecutiveFailures >= 3) {
+    logger.warn('MiniMax has failed 3+ times consecutively, Groq is primary');
+    activeProvider = 'groq';
+  }
 }
 
-/** Check whether we should use Gemini (under daily limit). */
-export function shouldUseGemini(): boolean {
-  resetIfNewDay();
-  return callCount < DAILY_LIMIT;
-}
-
-/** Check if usage has crossed the warning threshold. */
-export function isNearLimit(): boolean {
-  resetIfNewDay();
-  return callCount >= Math.floor(DAILY_LIMIT * WARNING_THRESHOLD);
-}
-
-/** Get current usage stats. */
+/**
+ * Get current provider status.
+ */
 export function getUsageStats() {
-  resetIfNewDay();
   return {
-    date: lastResetDate || todayUTC(),
-    geminiCalls: callCount,
-    limit: DAILY_LIMIT,
-    percentUsed: Math.round((callCount / DAILY_LIMIT) * 100),
-    usingFallback: callCount >= DAILY_LIMIT,
+    activeProvider,
+    miniMaxConfigured: isMiniMaxConfigured(),
+    consecutiveFailures,
+    lastHealthCheck: lastHealthCheck || 'none',
   };
 }
