@@ -1,4 +1,4 @@
-import { getSupabaseClient, type Workflow } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { DEFAULTS } from "@/lib/constants";
 import { ToolsFeed } from "./tools-feed";
 import { WorkflowShowcase } from "@/components/workflows/WorkflowShowcase";
@@ -42,53 +42,29 @@ async function getCategories() {
   return unique.sort();
 }
 
-async function getWorkflowsWithLogos(): Promise<{
-  workflows: Workflow[];
-  toolLogos: Record<string, string | null>;
-}> {
+async function getToolLogos(): Promise<Record<string, string | null>> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { workflows: [], toolLogos: {} };
+  if (!supabase) return {};
 
-  const { data: workflows } = await supabase
-    .from("workflows")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
+  const { data } = await supabase
+    .from("tools")
+    .select("slug, logo_url")
+    .eq("is_active", true);
 
-  if (!workflows || workflows.length === 0) return { workflows: [], toolLogos: {} };
-
-  // Collect all unique tool slugs from workflow steps
-  const allSlugs = new Set<string>();
-  for (const w of workflows) {
-    const steps = (w.steps || []) as { toolSlug: string }[];
-    for (const step of steps) {
-      allSlugs.add(step.toolSlug);
+  const logos: Record<string, string | null> = {};
+  if (data) {
+    for (const t of data) {
+      if (t.slug) logos[t.slug] = t.logo_url;
     }
   }
-
-  // Fetch logos for all referenced tools in a single query
-  const toolLogos: Record<string, string | null> = {};
-  if (allSlugs.size > 0) {
-    const { data: tools } = await supabase
-      .from("tools")
-      .select("slug, logo_url")
-      .in("slug", [...allSlugs]);
-
-    if (tools) {
-      for (const t of tools) {
-        if (t.slug) toolLogos[t.slug] = t.logo_url;
-      }
-    }
-  }
-
-  return { workflows: workflows as Workflow[], toolLogos };
+  return logos;
 }
 
 export default async function ToolsPage() {
-  const [tools, categories, { workflows, toolLogos }] = await Promise.all([
+  const [tools, categories, toolLogos] = await Promise.all([
     getInitialTools(),
     getCategories(),
-    getWorkflowsWithLogos(),
+    getToolLogos(),
   ]);
 
   return (
@@ -96,7 +72,7 @@ export default async function ToolsPage() {
       <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-6">
         AI Tools Directory
       </h1>
-      <WorkflowShowcase workflows={workflows} toolLogos={toolLogos} />
+      <WorkflowShowcase toolLogos={toolLogos} />
       <ToolsFeed initialTools={tools} categories={categories} />
     </main>
   );

@@ -77,5 +77,9 @@ export const RELEVANCE_THRESHOLD = parseInt(process.env.RELEVANCE_THRESHOLD || '
 export const ARTICLE_RETENTION_DAYS = 30;
 export const AUDIO_RETENTION_DAYS = 14;
 
+// Daily Word configuration
+export const DAILY_WORD_REFRESH_DAYS = 15;
+export const DAILY_WORDS_PER_PAGE = 12;
+
 // HTTP headers used for cron job auth
 export const CRON_AUTH_HEADER = 'x-cron-secret';

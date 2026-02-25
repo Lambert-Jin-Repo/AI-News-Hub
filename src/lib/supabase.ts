@@ -87,6 +87,16 @@ export interface Workflow {
   created_at: string;
 }
 
+export interface DailyWord {
+  id: string;
+  term: string;
+  content: string;
+  provider: string | null;
+  display_date: string;
+  generated_at: string;
+  cycle_id: number;
+}
+
 // ---------------------------------------------------------------------------
 // Database type map (used for generic Supabase client typing)
 // ---------------------------------------------------------------------------
@@ -99,6 +109,7 @@ export interface Database {
       tools: { Row: Tool; Insert: Partial<Tool> & Pick<Tool, 'name'>; Update: Partial<Tool> };
       sources: { Row: Source; Insert: Partial<Source> & Pick<Source, 'name' | 'type'>; Update: Partial<Source> };
       workflows: { Row: Workflow; Insert: Partial<Workflow> & Pick<Workflow, 'slug' | 'title'>; Update: Partial<Workflow> };
+      daily_words: { Row: DailyWord; Insert: Partial<DailyWord> & Pick<DailyWord, 'term' | 'content' | 'display_date'>; Update: Partial<DailyWord> };
     };
   };
 }

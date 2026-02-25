@@ -1,68 +1,36 @@
 import { NextResponse } from 'next/server';
-import { generateText } from '@/lib/llm-client';
+import { getTodayWord, generateDailyWord } from '@/lib/daily-word-generator';
 
-// Revalidate this path every 24 hours (86400 seconds) to ensure it stays a 'Daily' terminology
-export const revalidate = 86400;
+export const dynamic = 'force-dynamic';
 
-const AI_TERMS = [
-    "AI Agent",
-    "Retrieval-Augmented Generation (RAG)",
-    "Mixture of Experts (MoE)",
-    "vibe_coding",
-    "Zero-Shot Learning",
-    "Few-Shot Prompting",
-    "Vector Database",
-    "Large Language Model (LLM)",
-    "Chain of Thought (CoT)",
-    "Constitutional AI",
-    "Fine-Tuning",
-    "Transformer Architecture",
-    "Semantic Search",
-    "Context Window",
-    "Agentic Workflow",
-    "Tool Use / Function Calling",
-    "Prompt Engineering",
-    "Model Weights"
-];
-
-function getDailyTerm(): string {
-    // Use a predictable pseudo-random selection based on the current date
-    // So multiple calls on the same day reliably request the same term
-    const today = new Date();
-    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const index = seed % AI_TERMS.length;
-    return AI_TERMS[index];
-}
-
+/**
+ * GET /api/terminology
+ *
+ * Returns today's word of the day.
+ * Reads from Supabase first; if no word exists for today,
+ * generates one on-the-fly using MiniMax and persists it.
+ */
 export async function GET() {
-    const term = getDailyTerm();
-
-    const prompt = `You are a hype-man educator explaining AI concepts. Define the term: "${term}". 
-Requirements:
-1. Explain it simply in 1-2 short sentences.
-2. Provide a fun, relatable real-world analogy.
-3. Give incredibly short practical example.
-4. Use appropriate, highly expressive emojis to make it visually attractive.
-5. Format the output with these EXACT bolded headers: 
-**Definition:**
-**Analogy:**
-**Example:**
-
-Be enthusiastic but extremely concise. Do NOT generate markdown code blocks or wrapping quotes around the entire response. Just text and emojis.`;
-
     try {
-        const { text, provider } = await generateText(
-            prompt,
-            "Generate daily AI terminology card",
-            { maxTokens: 400 } // Keep it short and snappy
-        );
+        // Try to read from Supabase first
+        const cached = await getTodayWord();
+        if (cached) {
+            return NextResponse.json(cached);
+        }
 
-        return NextResponse.json({ term, content: text, provider });
+        // No word for today — generate and persist
+        const result = await generateDailyWord();
+        return NextResponse.json({
+            term: result.term,
+            content: result.content,
+            provider: result.provider,
+            display_date: result.display_date,
+        });
     } catch (error) {
-        console.error('Failed to generate daily terminology:', error);
+        console.error('Failed to get daily terminology:', error);
         return NextResponse.json(
-            { error: 'Failed to generate terminology' },
-            { status: 500 }
+            { error: 'Failed to get terminology' },
+            { status: 500 },
         );
     }
 }

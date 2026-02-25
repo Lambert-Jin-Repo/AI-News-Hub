@@ -153,41 +153,52 @@ Rules:
 - Use the exact category names listed above
 - If a tool spans multiple categories, choose the PRIMARY use case`;
 
-export const WORKFLOW_SUGGEST_ENHANCED_PROMPT = `You are an AI workflow advisor. Given the user's goal and a list of available AI tools from our database, suggest a 3-5 step workflow.
+export const WORKFLOW_SUGGEST_ENHANCED_PROMPT = `You are an expert AI workflow advisor. Given the user's goal and a list of available AI tools, generate a comprehensive, structured workflow guide.
 
-IMPORTANT: If the available tools don't fully cover the user's needs, you MAY recommend external tools not in the database. Clearly distinguish between database tools and external recommendations.
-
-Return ONLY valid JSON matching this schema:
+Return ONLY valid JSON matching this EXACT schema:
 {
-  "title": "Short workflow title (max 50 chars)",
-  "description": "1-2 sentence description of the workflow (max 200 chars)",
-  "steps": [
-    {
-      "toolSlug": "exact-slug-from-list OR external:tool-name",
-      "label": "Short label (1-3 words)",
-      "description": "What to do with this tool (1 sentence, max 100 chars)",
-      "isOptional": false,
-      "isExternal": false
-    }
-  ],
-  "externalTools": [
+  "title": "Short, punchy title (max 50 chars)",
+  "emoji": "A single emoji that represents this workflow",
+  "description": "1-2 sentence overview of the workflow (max 200 chars)",
+  "tools": [
     {
       "name": "Tool Name",
-      "url": "https://tool-url.com",
-      "reason": "Why this tool is recommended (1 sentence)"
+      "slug": "exact-slug-from-list OR null if external",
+      "role": "What this tool does in the workflow (max 60 chars)",
+      "isExternal": false,
+      "url": "https://tool-url.com (only for external tools, null otherwise)"
     }
+  ],
+  "steps": [
+    {
+      "order": 1,
+      "title": "Step title (2-4 words)",
+      "description": "What to do in this step (1-2 sentences, max 120 chars)",
+      "toolName": "Which tool to use"
+    }
+  ],
+  "tips": [
+    "Practical pro tip with emoji prefix (e.g. '⚡ Use batch processing for speed')"
+  ],
+  "promptTemplates": [
+    {
+      "label": "What this prompt is for (max 40 chars)",
+      "prompt": "Ready-to-use prompt text the user can copy-paste into the tool"
+    }
+  ],
+  "pitfalls": [
+    "Common mistake or thing to watch out for, with emoji prefix"
   ]
 }
 
 Rules:
-- Use 3-5 steps only
-- For database tools: toolSlug MUST exactly match a slug from the available tools list, isExternal = false
-- For external tools: use "external:tool-name" as toolSlug, isExternal = true
-- Prefer database tools when possible; only suggest external tools to fill gaps
-- externalTools array should contain details for any external tools used in steps
-- Each step should logically lead to the next
-- Mark truly optional steps with isOptional: true
-- Keep it practical and actionable`;
+- tools: 2-5 tools. Prefer database tools (use exact slug). Use isExternal:true + url for tools not in the database.
+- steps: 3-5 steps. Each step should reference a tool from the tools array by name.
+- tips: 2-4 actionable tips. Start each with a relevant emoji.
+- promptTemplates: 1-3 ready-to-use prompts. These should be REAL, practical prompts the user can paste into ChatGPT/Claude/etc. Make them specific to the goal, not generic.
+- pitfalls: 1-3 common mistakes. Start each with ⚠️ or relevant emoji.
+- Be enthusiastic but professional. Use emojis strategically, not excessively.
+- Keep the entire response practical and actionable — no fluff.`;
 
 // =============================================================================
 // Prompt Helpers
@@ -197,38 +208,62 @@ Rules:
  * Build the article summarisation user prompt.
  */
 export function buildArticleSummaryInput(article: {
-    title: string;
-    excerpt: string | null;
-    source: string | null;
+  title: string;
+  excerpt: string | null;
+  source: string | null;
 }): string {
-    const parts = [`Title: ${article.title}`];
-    if (article.source) parts.push(`Source: ${article.source}`);
-    if (article.excerpt) parts.push(`Excerpt: ${article.excerpt}`);
-    return parts.join('\n\n');
+  const parts = [`Title: ${article.title}`];
+  if (article.source) parts.push(`Source: ${article.source}`);
+  if (article.excerpt) parts.push(`Excerpt: ${article.excerpt}`);
+  return parts.join('\n\n');
 }
 
 /**
  * Build the daily digest user prompt with category grouping.
  */
 export function buildDailyDigestInput(
-    articles: Array<{ title: string; ai_summary: string | null; source: string | null; category: string | null }>
+  articles: Array<{ title: string; ai_summary: string | null; source: string | null; category: string | null }>
 ): string {
-    const stories = articles
-        .map((a: { title: string; ai_summary: string | null; source: string | null; category: string | null }, i: number) => {
-            const summary = a.ai_summary || '(no summary available)';
-            const cat = a.category ? `[${a.category.toUpperCase()}]` : '';
-            return `${i + 1}. ${cat} [${a.source || 'Unknown'}] ${a.title}\n   ${summary}`;
-        })
-        .join('\n\n');
+  const stories = articles
+    .map((a: { title: string; ai_summary: string | null; source: string | null; category: string | null }, i: number) => {
+      const summary = a.ai_summary || '(no summary available)';
+      const cat = a.category ? `[${a.category.toUpperCase()}]` : '';
+      return `${i + 1}. ${cat} [${a.source || 'Unknown'}] ${a.title}\n   ${summary}`;
+    })
+    .join('\n\n');
 
-    return `Today's top AI news stories:\n\n${stories}`;
+  return `Today's top AI news stories:\n\n${stories}`;
 }
 
 /**
  * Build the audio script user prompt from a written digest.
  */
 export function buildAudioScriptInput(digestText: string): string {
-    return `Written briefing to convert to podcast script:\n\n${digestText}`;
+  return `Written briefing to convert to podcast script:\n\n${digestText}`;
+}
+
+// =============================================================================
+// Daily Word (Terminology)
+// =============================================================================
+
+export const DAILY_WORD_PROMPT = `You are a hype-man educator explaining AI concepts. Define the given term.
+Requirements:
+1. Explain it simply in 1-2 short sentences.
+2. Provide a fun, relatable real-world analogy.
+3. Give incredibly short practical example.
+4. Use appropriate, highly expressive emojis to make it visually attractive.
+5. Format the output with these EXACT bolded headers:
+**Definition:**
+**Analogy:**
+**Example:**
+
+Be enthusiastic but extremely concise. Do NOT generate markdown code blocks or wrapping quotes around the entire response. Just text and emojis.`;
+
+/**
+ * Build the daily word user prompt for a given term.
+ */
+export function buildDailyWordInput(term: string): string {
+  return `AI term to explain: "${term}"`;
 }
 
 /**
@@ -236,37 +271,38 @@ export function buildAudioScriptInput(digestText: string): string {
  * Includes existing tool names so the LLM avoids duplicates.
  */
 export function buildToolDiscoveryInput(existingToolNames: string[]): string {
-    const parts = ['Find the most popular, trending AI tools available right now.'];
+  const parts = ['Find the most popular, trending AI tools available right now.'];
 
-    if (existingToolNames.length > 0) {
-        parts.push(
-            `\nTools already in our database (do NOT include these):\n${existingToolNames.map(n => `- ${n}`).join('\n')}`
-        );
-    }
+  if (existingToolNames.length > 0) {
+    parts.push(
+      `\nTools already in our database (do NOT include these):\n${existingToolNames.map(n => `- ${n}`).join('\n')}`
+    );
+  }
 
-    parts.push('\nFocus on tools that have gained traction in the last 30 days.');
-    return parts.join('\n');
+  parts.push('\nFocus on tools that have gained traction in the last 30 days.');
+  return parts.join('\n');
 }
 
 /**
  * Build the enhanced workflow suggest user prompt.
  */
 export function buildWorkflowSuggestInput(
-    goal: string,
-    dbToolList: string,
-    allowExternal: boolean,
+  goal: string,
+  dbToolList: string,
+  allowExternal: boolean,
 ): string {
-    const parts = [`Goal: "${goal}"\n\nAvailable tools in our database:\n${dbToolList}`];
+  const parts = [`Goal: "${goal}"\n\nAvailable tools in our database:\n${dbToolList}`];
 
-    if (allowExternal) {
-        parts.push(
-            '\nYou may also suggest external tools not in the database if they would significantly improve the workflow.'
-        );
-    } else {
-        parts.push(
-            '\nUse ONLY tools from the available tools list above. Do NOT suggest external tools.'
-        );
-    }
+  if (allowExternal) {
+    parts.push(
+      '\nYou may also suggest external tools not in the database if they would significantly improve the workflow.'
+    );
+  } else {
+    parts.push(
+      '\nUse ONLY tools from the available tools list above. Do NOT suggest external tools.'
+    );
+  }
 
-    return parts.join('\n');
+  return parts.join('\n');
 }
+

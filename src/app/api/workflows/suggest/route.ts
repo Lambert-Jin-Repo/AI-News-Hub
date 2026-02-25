@@ -83,89 +83,59 @@ export async function POST(request: NextRequest) {
   }
 
   const toolList = tools.map(t => `${t.name} (slug: ${t.slug}, category: ${t.category || 'uncategorized'})`).join('\n');
-
-  // Use enhanced prompt that supports external tool recommendations
   const taskPrompt = WORKFLOW_SUGGEST_ENHANCED_PROMPT;
   const userContent = buildWorkflowSuggestInput(goal, toolList, allowExternal);
 
   try {
-    const result = await generateText(taskPrompt, userContent, { maxTokens: 1024 });
+    const result = await generateText(taskPrompt, userContent);
 
     // Extract JSON from response
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      logger.warn('Workflow suggestion returned non-JSON response', { provider: result.provider });
+      logger.warn('Workflow advisor returned non-JSON response', { provider: result.provider });
       return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Validate structure
+    // Validate required fields
     if (!parsed.title || !parsed.description || !Array.isArray(parsed.steps) || parsed.steps.length === 0) {
       return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
     }
 
-    // Separate database tools from external recommendations
+    // Enrich tools with DB slug validation
     const validSlugs = new Set(tools.map(t => t.slug));
-    const dbSteps: Array<Record<string, unknown>> = [];
-    const externalSteps: Array<Record<string, unknown>> = [];
-
-    for (const step of parsed.steps) {
-      const isExternal = step.isExternal === true || String(step.toolSlug).startsWith('external:');
-
-      if (isExternal) {
-        externalSteps.push({
-          ...step,
-          isExternal: true,
-        });
-      } else if (validSlugs.has(step.toolSlug)) {
-        dbSteps.push({
-          ...step,
-          isExternal: false,
-        });
-      } else {
-        // Invalid slug — treat as external if allowExternal, otherwise skip
-        if (allowExternal) {
-          externalSteps.push({
-            ...step,
-            toolSlug: `external:${step.toolSlug}`,
-            isExternal: true,
-          });
-        } else {
-          logger.warn('Workflow suggestion contained invalid tool slug', { slug: step.toolSlug });
-        }
-      }
-    }
-
-    // All steps combined
-    const allSteps = [...dbSteps, ...externalSteps];
-    if (allSteps.length === 0) {
-      return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
-    }
-
-    // Add order numbers
-    const orderedSteps = allSteps.map((step, i) => ({
-      ...step,
-      order: i + 1,
+    const enrichedTools = (parsed.tools || []).map((tool: Record<string, unknown>) => ({
+      name: tool.name || 'Unknown',
+      slug: typeof tool.slug === 'string' && validSlugs.has(tool.slug) ? tool.slug : null,
+      role: tool.role || '',
+      isExternal: tool.isExternal === true || !validSlugs.has(tool.slug as string),
+      url: tool.url || null,
     }));
 
-    // Extract external tool details
-    const externalTools = Array.isArray(parsed.externalTools) ? parsed.externalTools : [];
+    // Enrich steps with order
+    const enrichedSteps = (parsed.steps || []).map((step: Record<string, unknown>, i: number) => ({
+      order: step.order || i + 1,
+      title: step.title || `Step ${i + 1}`,
+      description: step.description || '',
+      toolName: step.toolName || null,
+    }));
 
     return NextResponse.json({
-      workflow: {
+      advisor: {
         title: parsed.title,
+        emoji: parsed.emoji || '🎯',
         description: parsed.description,
-        steps: orderedSteps,
-        cost_category: null, // AI-suggested, not curated
-        difficulty: null,
-        estimated_minutes: null,
+        tools: enrichedTools,
+        steps: enrichedSteps,
+        tips: Array.isArray(parsed.tips) ? parsed.tips : [],
+        promptTemplates: Array.isArray(parsed.promptTemplates) ? parsed.promptTemplates : [],
+        pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls : [],
       },
-      externalTools,
       provider: result.provider,
     });
   } catch (err) {
-    logger.error('Workflow suggestion failed', err instanceof Error ? err : null);
+    logger.error('Workflow advisor failed', err instanceof Error ? err : null);
     return NextResponse.json(
       { error: 'Could not generate workflow. Please try again later.' },
       { status: 503 },

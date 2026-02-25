@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NewsCard } from "@/components/cards/NewsCard";
+import { DailyTerminologyCard } from "@/components/cards/DailyTerminologyCard";
 import { getSupabaseClient } from "@/lib/supabase";
 import {
   ArrowRight,
@@ -11,7 +12,6 @@ import {
 import { DailyBriefingHero } from "@/components/home/DailyBriefingHero";
 import { AudioPlayerCard } from "@/components/home/AudioPlayerCard";
 import { FeaturedToolCard } from "@/components/home/FeaturedToolCard";
-import { DailyTerminologyCard } from "@/components/home/DailyTerminologyCard";
 import { StatsRow } from "@/components/home/StatsRow";
 
 export const dynamic = 'force-dynamic';
