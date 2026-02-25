@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import Groq from 'groq-sdk';
 import { AppError, ErrorCode } from './errors';
-import { shouldUseGemini, recordGeminiCall, isNearLimit } from './llm-usage';
 import { logger } from './logger';
 
 export interface LLMResponse {
   text: string;
-  provider: 'gemini' | 'groq';
+  provider: 'minimax' | 'groq';
 }
 
 export interface GenerateTextOptions {
@@ -36,35 +35,51 @@ function buildSystemPrompt(taskPrompt: string): string {
 }
 
 /**
- * Attempt generation with Google Gemini.
+ * Strip <think>...</think> reasoning blocks from model output.
+ * MiniMax M2.5 is a reasoning model that may emit chain-of-thought
+ * before the actual response.
  */
-async function callGemini(
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+}
+
+/**
+ * Attempt generation with MiniMax M2.5 via OpenAI-compatible API.
+ */
+async function callMiniMax(
   systemPrompt: string,
   userPrompt: string,
+  maxTokens: number,
 ): Promise<LLMResponse> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new AppError('GEMINI_API_KEY is not set', ErrorCode.CONFIG_MISSING);
+  const apiKey = process.env.MINIMAX_API_KEY;
+  if (!apiKey) throw new AppError('MINIMAX_API_KEY is not set', ErrorCode.CONFIG_MISSING);
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    systemInstruction: systemPrompt,
+  const modelName = process.env.MINIMAX_MODEL || 'MiniMax-M2.5';
+
+  const client = new OpenAI({
+    apiKey,
+    baseURL: 'https://api.minimax.io/v1',
   });
 
-  const result = await model.generateContent(userPrompt);
-  const response = result.response;
-  const text = response.text();
+  const completion = await client.chat.completions.create({
+    model: modelName,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.3,
+    max_tokens: maxTokens,
+  });
 
-  if (!text) {
-    const blockReason = response.candidates?.[0]?.finishReason;
-    if (blockReason === 'SAFETY') {
-      throw new AppError('Content blocked by Gemini safety filters', ErrorCode.SAFETY_BLOCK);
-    }
-    throw new AppError('Gemini returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) {
+    throw new AppError('MiniMax returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
   }
 
-  return { text, provider: 'gemini' };
+  // MiniMax M2.5 is a reasoning model — strip <think>...</think> blocks
+  const text = stripThinkTags(raw);
+
+  return { text, provider: 'minimax' };
 }
 
 /**
@@ -104,11 +119,14 @@ function isQuotaOrRateError(error: unknown): boolean {
 }
 
 /**
- * Generate text using Gemini as primary, falling back to Groq.
+ * Generate text using MiniMax M2.5 as primary, falling back to Groq.
+ *
+ * Retry logic: MiniMax is retried once on transient errors before
+ * falling back to Groq. Safety blocks are propagated immediately.
  *
  * @param taskPrompt - The instruction describing what the model should do
  * @param userContent - The untrusted content to process (will be wrapped)
- * @param options - Optional configuration (e.g. maxTokens for Groq fallback)
+ * @param options - Optional configuration (e.g. maxTokens)
  * @returns LLMResponse with text and provider used
  * @throws AppError with typed error code
  */
@@ -121,50 +139,54 @@ export async function generateText(
   const systemPrompt = buildSystemPrompt(taskPrompt);
   const wrappedContent = wrapUserContent(userContent);
 
-  // Check usage limit before trying Gemini
-  if (!shouldUseGemini()) {
-    logger.info('Gemini daily limit reached, routing directly to Groq');
-    return await callGroq(systemPrompt, wrappedContent, maxTokens);
-  }
-
-  if (isNearLimit()) {
-    logger.warn('Gemini daily usage at 80%, will fallback to Groq soon');
-  }
-
-  // Try Gemini first
-  try {
-    const result = await callGemini(systemPrompt, wrappedContent);
-    recordGeminiCall();
-    return result;
-  } catch (geminiError) {
-    // If it's a safety block, propagate immediately — Groq may also block
-    if (AppError.isSafetyBlock(geminiError)) {
-      throw geminiError;
-    }
-
-    // Wrap quota/rate errors with proper code before trying fallback
-    if (isQuotaOrRateError(geminiError)) {
-      // Still try Groq as fallback
-    }
-
-    // Try Groq as fallback
+  // Try MiniMax first (with one retry on transient errors)
+  let miniMaxError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      return await callGroq(systemPrompt, wrappedContent, maxTokens);
-    } catch (groqError) {
-      // If either was a quota/rate error, surface that code
-      if (isQuotaOrRateError(geminiError) || isQuotaOrRateError(groqError)) {
-        throw new AppError(
-          `Both providers hit quota/rate limits. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
-          ErrorCode.QUOTA_EXCEEDED,
-          { isRetryable: true },
-        );
+      const result = await callMiniMax(systemPrompt, wrappedContent, maxTokens);
+      return result;
+    } catch (error) {
+      miniMaxError = error;
+
+      // Safety blocks propagate immediately — no retry or fallback
+      if (AppError.isSafetyBlock(error)) {
+        throw error;
       }
 
+      // CONFIG_MISSING means no API key — skip retry, go straight to fallback
+      if (error instanceof AppError && error.code === ErrorCode.CONFIG_MISSING) {
+        break;
+      }
+
+      // On first attempt, log and retry
+      if (attempt === 0) {
+        logger.warn('MiniMax attempt failed, retrying once', { error: error instanceof Error ? error.message : String(error) });
+        continue;
+      }
+    }
+  }
+
+  // Fallback to Groq
+  logger.info('MiniMax unavailable, falling back to Groq', {
+    reason: miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError),
+  });
+
+  try {
+    return await callGroq(systemPrompt, wrappedContent, maxTokens);
+  } catch (groqError) {
+    // If either was a quota/rate error, surface that code
+    if (isQuotaOrRateError(miniMaxError) || isQuotaOrRateError(groqError)) {
       throw new AppError(
-        `Both providers failed. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
-        ErrorCode.LLM_BOTH_FAILED,
+        `Both providers hit quota/rate limits. MiniMax: ${miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+        ErrorCode.QUOTA_EXCEEDED,
         { isRetryable: true },
       );
     }
+
+    throw new AppError(
+      `Both providers failed. MiniMax: ${miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+      ErrorCode.LLM_BOTH_FAILED,
+      { isRetryable: true },
+    );
   }
 }

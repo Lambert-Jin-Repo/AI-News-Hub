@@ -73,8 +73,7 @@ export const ON_TOPIC_CATEGORIES: ArticleCategory[] = ['llm', 'agents', 'models'
 // Minimum relevance score (1-10) to keep an article — configurable via env var
 export const RELEVANCE_THRESHOLD = parseInt(process.env.RELEVANCE_THRESHOLD || '5', 10);
 
-// Cost optimization limits
-export const MAX_ARTICLES_PER_DAY = 20;
+// Retention limits
 export const ARTICLE_RETENTION_DAYS = 30;
 export const AUDIO_RETENTION_DAYS = 14;
 
