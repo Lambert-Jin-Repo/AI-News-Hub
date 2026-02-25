@@ -121,3 +121,28 @@ export function buildDailyDigestInput(
 export function buildAudioScriptInput(digestText: string): string {
     return `Written briefing to convert to podcast script:\n\n${digestText}`;
 }
+
+// =============================================================================
+// Daily Word (Terminology)
+// =============================================================================
+
+export const DAILY_WORD_PROMPT = `You are a hype-man educator explaining AI concepts. Define the given term.
+Requirements:
+1. Explain it simply in 1-2 short sentences.
+2. Provide a fun, relatable real-world analogy.
+3. Give incredibly short practical example.
+4. Use appropriate, highly expressive emojis to make it visually attractive.
+5. Format the output with these EXACT bolded headers:
+**Definition:**
+**Analogy:**
+**Example:**
+
+Be enthusiastic but extremely concise. Do NOT generate markdown code blocks or wrapping quotes around the entire response. Just text and emojis.`;
+
+/**
+ * Build the daily word user prompt for a given term.
+ */
+export function buildDailyWordInput(term: string): string {
+    return `AI term to explain: "${term}"`;
+}
+

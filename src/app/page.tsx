@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { NewsCard } from "@/components/cards/NewsCard";
+import { DailyTerminologyCard } from "@/components/cards/DailyTerminologyCard";
 import { supabase } from "@/lib/supabase";
 import {
   PlayCircle,
@@ -302,6 +303,9 @@ export default async function Home() {
                 )}
               </div>
             </div>
+
+            {/* Daily Word Card */}
+            <DailyTerminologyCard />
 
             {/* Featured Tool Card */}
             <Link

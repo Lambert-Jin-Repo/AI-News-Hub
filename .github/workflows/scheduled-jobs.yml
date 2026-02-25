@@ -8,6 +8,10 @@ on:
     - cron: "0 */2 * * *"
     # Generate daily digest at 00:00 UTC (08:00 AWST)
     - cron: "0 0 * * *"
+    # Generate daily word at 22:00 UTC (06:00 AWST)
+    - cron: "0 22 * * *"
+    # Refresh all daily words on 1st and 16th of each month
+    - cron: "0 0 1,16 * *"
   workflow_dispatch:
     inputs:
       job:
@@ -18,6 +22,8 @@ on:
           - fetch-news
           - summarise
           - daily-digest
+          - generate-daily-word
+          - refresh-daily-words
 
 jobs:
   fetch-news:
@@ -55,3 +61,27 @@ jobs:
           curl -s -X POST \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             "${{ secrets.CLOUD_RUN_URL }}/api/jobs/daily-digest"
+
+  generate-daily-word:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'generate-daily-word' ||
+      github.event_name == 'schedule' && github.event.schedule == '0 22 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger generate-daily-word
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/generate-daily-word"
+
+  refresh-daily-words:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'refresh-daily-words' ||
+      github.event_name == 'schedule' && github.event.schedule == '0 0 1,16 * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger refresh-daily-words
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/refresh-daily-words"
