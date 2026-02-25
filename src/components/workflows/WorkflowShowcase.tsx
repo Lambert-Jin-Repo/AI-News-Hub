@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2, Sparkles, ArrowRight, Clock } from "lucide-react";
 import { WorkflowPipeline } from "./WorkflowPipeline";
 import { AdvisorResult, type AdvisorData } from "./AdvisorResult";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { AdvisorLoadingAnimation } from "./AdvisorLoadingAnimation";
 import { cn } from "@/lib/utils";
 import type { Workflow } from "@/lib/supabase";
 
@@ -168,21 +168,8 @@ export function WorkflowShowcase({ workflows, toolLogos }: WorkflowShowcaseProps
             </button>
           </div>
 
-          {/* Loading skeleton */}
-          {suggesting && (
-            <div className="animate-pulse space-y-3">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full max-w-md" />
-              <div className="flex items-center gap-3 mt-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <Skeleton className="w-10 h-10 rounded-xl" />
-                    {i < 4 && <Skeleton className="w-4 h-4" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Loading animation */}
+          {suggesting && <AdvisorLoadingAnimation />}
 
           {/* Error */}
           {suggestError && (
