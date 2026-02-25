@@ -56,7 +56,7 @@ Open [http://localhost:3000](http://localhost:3000)
 |-------|------------|
 | Frontend | Next.js 16, React 19, Tailwind CSS |
 | Database | Supabase (PostgreSQL) |
-| LLM | Gemini 2.0 Flash (primary), Groq (fallback) |
+| LLM | MiniMax M2.5 (primary), Groq (fallback) |
 | TTS | Google Cloud Text-to-Speech |
 | Hosting | Google Cloud Run |
 | CI/CD | GitHub Actions |
@@ -163,10 +163,12 @@ See [docs/COST_OPTIMIZATION.md](docs/COST_OPTIMIZATION.md)
 
 | Document | Description |
 |----------|-------------|
-| [MAINTENANCE.md](MAINTENANCE.md) | Update & maintenance guide |
-| [docs/COST_OPTIMIZATION.md](docs/COST_OPTIMIZATION.md) | Cost reduction strategies |
-| [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) | Pre-launch verification |
-| [PROJECT_TRACKER.md](PROJECT_TRACKER.md) | Development progress |
+| [Documentation Index](docs/README.md) | All docs in one place |
+| [Maintenance Guide](docs/guides/maintenance.md) | Update & ops guide |
+| [Cost Optimization](docs/architecture/cost-optimization.md) | Free-tier cost strategies |
+| [Launch Checklist](docs/guides/launch-checklist.md) | Pre-launch verification |
+| [Project Tracker](docs/planning/project-tracker.md) | Development progress |
+| [Feature Roadmap](docs/planning/feature-update.md) | MiniMax migration & AI automation |
 
 ---
 
