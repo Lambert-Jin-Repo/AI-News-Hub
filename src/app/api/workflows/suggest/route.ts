@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import { generateText } from '@/lib/llm-client';
+import {
+  WORKFLOW_SUGGEST_ENHANCED_PROMPT,
+  buildWorkflowSuggestInput,
+} from '@/lib/prompts';
 import { logger } from '@/lib/logger';
 
 // In-memory rate limiter: max 10 requests/minute per IP
@@ -55,9 +59,11 @@ export async function POST(request: NextRequest) {
 
   // Parse and validate input
   let goal: string;
+  let allowExternal: boolean;
   try {
     const body = await request.json();
     goal = typeof body.goal === 'string' ? body.goal.trim() : '';
+    allowExternal = body.allowExternal !== false; // defaults to true
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
@@ -78,30 +84,9 @@ export async function POST(request: NextRequest) {
 
   const toolList = tools.map(t => `${t.name} (slug: ${t.slug}, category: ${t.category || 'uncategorized'})`).join('\n');
 
-  const taskPrompt = `You are an AI workflow advisor. Given the user's goal and a list of available AI tools, suggest a 3-5 step workflow using ONLY tools from the provided list.
-
-Return ONLY valid JSON matching this schema:
-{
-  "title": "Short workflow title (max 50 chars)",
-  "description": "1-2 sentence description of the workflow (max 200 chars)",
-  "steps": [
-    {
-      "toolSlug": "exact-slug-from-list",
-      "label": "Short label (1-3 words)",
-      "description": "What to do with this tool (1 sentence, max 100 chars)",
-      "isOptional": false
-    }
-  ]
-}
-
-Rules:
-- Use 3-5 steps only
-- Every toolSlug MUST exactly match a slug from the available tools list
-- Each step should logically lead to the next
-- Mark truly optional steps with isOptional: true
-- Keep it practical and actionable`;
-
-  const userContent = `Goal: "${goal}"\n\nAvailable tools:\n${toolList}`;
+  // Use enhanced prompt that supports external tool recommendations
+  const taskPrompt = WORKFLOW_SUGGEST_ENHANCED_PROMPT;
+  const userContent = buildWorkflowSuggestInput(goal, toolList, allowExternal);
 
   try {
     const result = await generateText(taskPrompt, userContent, { maxTokens: 1024 });
@@ -120,35 +105,63 @@ Rules:
       return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
     }
 
-    // Validate all tool slugs exist
+    // Separate database tools from external recommendations
     const validSlugs = new Set(tools.map(t => t.slug));
-    const invalidSteps = parsed.steps.filter((s: { toolSlug: string }) => !validSlugs.has(s.toolSlug));
-    if (invalidSteps.length > 0) {
-      logger.warn('Workflow suggestion contained invalid tool slugs', {
-        invalid: invalidSteps.map((s: { toolSlug: string }) => s.toolSlug),
-      });
-      // Filter out invalid steps rather than failing entirely
-      parsed.steps = parsed.steps.filter((s: { toolSlug: string }) => validSlugs.has(s.toolSlug));
-      if (parsed.steps.length === 0) {
-        return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
+    const dbSteps: Array<Record<string, unknown>> = [];
+    const externalSteps: Array<Record<string, unknown>> = [];
+
+    for (const step of parsed.steps) {
+      const isExternal = step.isExternal === true || String(step.toolSlug).startsWith('external:');
+
+      if (isExternal) {
+        externalSteps.push({
+          ...step,
+          isExternal: true,
+        });
+      } else if (validSlugs.has(step.toolSlug)) {
+        dbSteps.push({
+          ...step,
+          isExternal: false,
+        });
+      } else {
+        // Invalid slug — treat as external if allowExternal, otherwise skip
+        if (allowExternal) {
+          externalSteps.push({
+            ...step,
+            toolSlug: `external:${step.toolSlug}`,
+            isExternal: true,
+          });
+        } else {
+          logger.warn('Workflow suggestion contained invalid tool slug', { slug: step.toolSlug });
+        }
       }
     }
 
+    // All steps combined
+    const allSteps = [...dbSteps, ...externalSteps];
+    if (allSteps.length === 0) {
+      return NextResponse.json({ error: 'Could not generate workflow. Please try again.' }, { status: 500 });
+    }
+
     // Add order numbers
-    parsed.steps = parsed.steps.map((step: Record<string, unknown>, i: number) => ({
+    const orderedSteps = allSteps.map((step, i) => ({
       ...step,
       order: i + 1,
     }));
+
+    // Extract external tool details
+    const externalTools = Array.isArray(parsed.externalTools) ? parsed.externalTools : [];
 
     return NextResponse.json({
       workflow: {
         title: parsed.title,
         description: parsed.description,
-        steps: parsed.steps,
+        steps: orderedSteps,
         cost_category: null, // AI-suggested, not curated
         difficulty: null,
         estimated_minutes: null,
       },
+      externalTools,
       provider: result.provider,
     });
   } catch (err) {

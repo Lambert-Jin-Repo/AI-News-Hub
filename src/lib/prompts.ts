@@ -81,6 +81,115 @@ Rules:
 - Output ONLY the script text, no stage directions`;
 
 // =============================================================================
+// AI Tool Discovery
+// =============================================================================
+
+export const TOOL_DISCOVERY_PROMPT = `You are an AI tools analyst. Your job is to identify the most popular, trending, and frequently used AI tools in the market right now.
+
+Use your knowledge (including web search when available) to find 20-30 AI tools across these categories:
+- LLMs (Large Language Models & Chat)
+- Web Builders (AI-powered website/app builders)
+- Frontend Design (UI/UX design tools with AI)
+- AI Agents (autonomous agents & agent frameworks)
+- Image Generation (AI image creation & editing)
+- Code Assistants (AI coding tools & IDEs)
+- Data & Analytics (AI data tools)
+- Productivity (AI productivity & workflow tools)
+- Audio/Video AI (speech, music, video generation)
+
+For each tool, provide:
+- name: The tool's official name
+- description: One-sentence description (max 120 chars)
+- url: Official website URL
+- pricing_model: "free" | "freemium" | "paid"
+- tags: 2-4 relevant tags as an array
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "tools": [
+    {
+      "name": "ToolName",
+      "description": "Short description of what it does",
+      "url": "https://example.com",
+      "pricing_model": "freemium",
+      "tags": ["tag1", "tag2"]
+    }
+  ]
+}
+
+Rules:
+- Include ONLY real, currently active tools (no defunct or unreleased tools)
+- Prioritise tools that are trending or have gained significant traction recently
+- Cover ALL categories listed above (at least 2 tools per category)
+- pricing_model must be exactly one of: free, freemium, paid
+- URLs must be real, working URLs
+- Do NOT include duplicate tools
+- Be factual — no hallucinated tools`;
+
+export const TOOL_CATEGORY_PROMPT = `You are an AI tools categorisation expert.
+
+Given a list of AI tools with their names and descriptions, assign each tool to exactly ONE category from the following taxonomy:
+
+Categories:
+- LLMs — Large language model interfaces, chatbots, text generation
+- Web Builders — AI-powered website builders, no-code/low-code platforms
+- Frontend Design — UI/UX design tools enhanced with AI
+- AI Agents — Autonomous agents, agent frameworks, multi-agent systems
+- Image Generation — AI image creation, editing, enhancement
+- Code Assistants — AI coding tools, IDE extensions, code generation
+- Data & Analytics — AI-powered data analysis, visualisation, BI tools
+- Productivity — AI writing, email, scheduling, general productivity
+- Audio/Video AI — Text-to-speech, music generation, video creation/editing
+
+Respond with ONLY valid JSON:
+{
+  "categorised": [
+    { "name": "ToolName", "category": "Category Name" }
+  ]
+}
+
+Rules:
+- Every tool MUST be assigned exactly one category
+- Use the exact category names listed above
+- If a tool spans multiple categories, choose the PRIMARY use case`;
+
+export const WORKFLOW_SUGGEST_ENHANCED_PROMPT = `You are an AI workflow advisor. Given the user's goal and a list of available AI tools from our database, suggest a 3-5 step workflow.
+
+IMPORTANT: If the available tools don't fully cover the user's needs, you MAY recommend external tools not in the database. Clearly distinguish between database tools and external recommendations.
+
+Return ONLY valid JSON matching this schema:
+{
+  "title": "Short workflow title (max 50 chars)",
+  "description": "1-2 sentence description of the workflow (max 200 chars)",
+  "steps": [
+    {
+      "toolSlug": "exact-slug-from-list OR external:tool-name",
+      "label": "Short label (1-3 words)",
+      "description": "What to do with this tool (1 sentence, max 100 chars)",
+      "isOptional": false,
+      "isExternal": false
+    }
+  ],
+  "externalTools": [
+    {
+      "name": "Tool Name",
+      "url": "https://tool-url.com",
+      "reason": "Why this tool is recommended (1 sentence)"
+    }
+  ]
+}
+
+Rules:
+- Use 3-5 steps only
+- For database tools: toolSlug MUST exactly match a slug from the available tools list, isExternal = false
+- For external tools: use "external:tool-name" as toolSlug, isExternal = true
+- Prefer database tools when possible; only suggest external tools to fill gaps
+- externalTools array should contain details for any external tools used in steps
+- Each step should logically lead to the next
+- Mark truly optional steps with isOptional: true
+- Keep it practical and actionable`;
+
+// =============================================================================
 // Prompt Helpers
 // =============================================================================
 
@@ -120,4 +229,44 @@ export function buildDailyDigestInput(
  */
 export function buildAudioScriptInput(digestText: string): string {
     return `Written briefing to convert to podcast script:\n\n${digestText}`;
+}
+
+/**
+ * Build the tool discovery user prompt.
+ * Includes existing tool names so the LLM avoids duplicates.
+ */
+export function buildToolDiscoveryInput(existingToolNames: string[]): string {
+    const parts = ['Find the most popular, trending AI tools available right now.'];
+
+    if (existingToolNames.length > 0) {
+        parts.push(
+            `\nTools already in our database (do NOT include these):\n${existingToolNames.map(n => `- ${n}`).join('\n')}`
+        );
+    }
+
+    parts.push('\nFocus on tools that have gained traction in the last 30 days.');
+    return parts.join('\n');
+}
+
+/**
+ * Build the enhanced workflow suggest user prompt.
+ */
+export function buildWorkflowSuggestInput(
+    goal: string,
+    dbToolList: string,
+    allowExternal: boolean,
+): string {
+    const parts = [`Goal: "${goal}"\n\nAvailable tools in our database:\n${dbToolList}`];
+
+    if (allowExternal) {
+        parts.push(
+            '\nYou may also suggest external tools not in the database if they would significantly improve the workflow.'
+        );
+    } else {
+        parts.push(
+            '\nUse ONLY tools from the available tools list above. Do NOT suggest external tools.'
+        );
+    }
+
+    return parts.join('\n');
 }

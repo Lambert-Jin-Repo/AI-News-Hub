@@ -153,6 +153,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
             options={sourceOptions}
             selected={selectedSource}
             onChange={handleSourceFilter}
+            collapsedCount={4}
           />
         )}
         {categories.length > 0 && (

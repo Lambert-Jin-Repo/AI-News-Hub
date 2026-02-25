@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildArticleSummaryInput, buildDailyDigestInput, buildAudioScriptInput } from '../prompts';
+import {
+  buildArticleSummaryInput,
+  buildDailyDigestInput,
+  buildAudioScriptInput,
+  buildToolDiscoveryInput,
+  buildWorkflowSuggestInput,
+} from '../prompts';
 
 describe('buildArticleSummaryInput', () => {
   it('includes title, source, and excerpt', () => {
@@ -112,3 +118,52 @@ describe('buildAudioScriptInput', () => {
     expect(result).toContain('Written briefing to convert to podcast script:');
   });
 });
+
+describe('buildToolDiscoveryInput', () => {
+  it('includes existing tool names for deduplication', () => {
+    const result = buildToolDiscoveryInput(['ChatGPT', 'Midjourney', 'Cursor']);
+
+    expect(result).toContain('do NOT include these');
+    expect(result).toContain('- ChatGPT');
+    expect(result).toContain('- Midjourney');
+    expect(result).toContain('- Cursor');
+  });
+
+  it('handles empty existing tools', () => {
+    const result = buildToolDiscoveryInput([]);
+
+    expect(result).toContain('trending AI tools');
+    expect(result).not.toContain('do NOT include these');
+  });
+
+  it('includes focus on recent traction', () => {
+    const result = buildToolDiscoveryInput([]);
+
+    expect(result).toContain('last 30 days');
+  });
+});
+
+describe('buildWorkflowSuggestInput', () => {
+  it('includes goal and tool list', () => {
+    const result = buildWorkflowSuggestInput('Build a chatbot', 'Tool A\nTool B', true);
+
+    expect(result).toContain('Goal: "Build a chatbot"');
+    expect(result).toContain('Tool A');
+    expect(result).toContain('Tool B');
+  });
+
+  it('includes external tool permission when allowed', () => {
+    const result = buildWorkflowSuggestInput('Build an app', 'Tool A', true);
+
+    expect(result).toContain('suggest external tools');
+    expect(result).not.toContain('Do NOT suggest external');
+  });
+
+  it('excludes external tools when not allowed', () => {
+    const result = buildWorkflowSuggestInput('Build an app', 'Tool A', false);
+
+    expect(result).toContain('Do NOT suggest external tools');
+    expect(result).not.toContain('significantly improve');
+  });
+});
+
