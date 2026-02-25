@@ -12,6 +12,8 @@ on:
     - cron: "0 22 * * *"
     # Refresh all daily words on 1st and 16th of each month
     - cron: "0 0 1,16 * *"
+    # Discover new AI tools weekly — Monday 2 AM AWST (UTC: 18:00 Sunday)
+    - cron: "0 18 * * 0"
   workflow_dispatch:
     inputs:
       job:
@@ -24,6 +26,7 @@ on:
           - daily-digest
           - generate-daily-word
           - refresh-daily-words
+          - discover-tools
 
 jobs:
   fetch-news:
@@ -85,3 +88,15 @@ jobs:
           curl -s -X POST \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             "${{ secrets.CLOUD_RUN_URL }}/api/jobs/refresh-daily-words"
+
+  discover-tools:
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'discover-tools' ||
+      github.event_name == 'schedule' && github.event.schedule == '0 18 * * 0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger discover-tools
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CLOUD_RUN_URL }}/api/jobs/discover-tools"
