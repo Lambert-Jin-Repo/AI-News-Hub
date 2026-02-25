@@ -3,7 +3,8 @@
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Loader2, Sparkles, ArrowRight, Clock } from "lucide-react";
-import { WorkflowPipeline, type PipelineStep } from "./WorkflowPipeline";
+import { WorkflowPipeline } from "./WorkflowPipeline";
+import { AdvisorResult, type AdvisorData } from "./AdvisorResult";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import type { Workflow } from "@/lib/supabase";
@@ -26,21 +27,13 @@ const difficultyColors = {
   advanced: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
-interface SuggestedWorkflow {
-  title: string;
-  description: string;
-  steps: PipelineStep[];
-  cost_category: string | null;
-  difficulty: string | null;
-  estimated_minutes: number | null;
-}
 
 export function WorkflowShowcase({ workflows, toolLogos }: WorkflowShowcaseProps) {
   const [mode, setMode] = useState<FilterMode>("free");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [goal, setGoal] = useState("");
   const [suggesting, setSuggesting] = useState(false);
-  const [suggested, setSuggested] = useState<SuggestedWorkflow | null>(null);
+  const [suggested, setSuggested] = useState<AdvisorData | null>(null);
   const [suggestError, setSuggestError] = useState("");
 
   const freeWorkflows = useMemo(() => workflows.filter(w => w.cost_category === "free"), [workflows]);
@@ -91,7 +84,7 @@ export function WorkflowShowcase({ workflows, toolLogos }: WorkflowShowcaseProps
       }
 
       const data = await res.json();
-      setSuggested(data.workflow);
+      setSuggested(data.advisor);
     } catch {
       setSuggestError("Network error. Please try again.");
     } finally {
@@ -155,7 +148,7 @@ export function WorkflowShowcase({ workflows, toolLogos }: WorkflowShowcaseProps
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSuggest()}
-              placeholder="Describe what you want to build..."
+              placeholder="e.g. Build a landing page with AI, Create a YouTube video..."
               maxLength={200}
               className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-[#0d1b1a] dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
@@ -196,26 +189,9 @@ export function WorkflowShowcase({ workflows, toolLogos }: WorkflowShowcaseProps
             <p className="text-sm text-red-500 dark:text-red-400">{suggestError}</p>
           )}
 
-          {/* AI-generated result */}
+          {/* AI-generated advisor result */}
           {suggested && !suggesting && (
-            <div className="animate-in fade-in duration-500">
-              <h3 className="text-xl font-bold text-[#0d1b1a] dark:text-white mb-1">
-                {suggested.title}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                {suggested.description}
-              </p>
-              <WorkflowPipeline
-                steps={suggested.steps}
-                toolLogos={toolLogos}
-              />
-              <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-                <span>{suggested.steps.length} steps</span>
-                <span className="flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> AI-generated
-                </span>
-              </div>
-            </div>
+            <AdvisorResult data={suggested} toolLogos={toolLogos} />
           )}
 
           {/* Back to curated */}
