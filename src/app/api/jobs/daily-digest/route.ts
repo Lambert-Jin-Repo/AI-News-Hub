@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyCronAuth } from '@/lib/auth';
 import { generateDailyDigest } from '@/lib/digest-generator';
+import { AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // 2 minute timeout for TTS generation
@@ -11,7 +12,7 @@ export const maxDuration = 120; // 2 minute timeout for TTS generation
  * CRON endpoint to generate daily "Today in AI" digest.
  * Protected by CRON_SECRET.
  * 
- * Schedule: Daily at 6 AM AWST (0 22 * * * UTC)
+ * Schedule: Daily at 7 AM AWST (0 23 * * * UTC)
  */
 export async function POST(request: Request) {
     // Verify CRON secret
@@ -30,28 +31,23 @@ export async function POST(request: Request) {
             message: `Generated digest with ${result.articleCount} articles`,
         });
     } catch (error) {
-        console.error('Daily digest generation failed:', error);
-
-        // Check if digest already exists
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('already exists')) {
+        if (AppError.isDigestExists(error)) {
             return NextResponse.json(
                 { error: 'Digest already exists for today', skipped: true },
                 { status: 200 }
             );
         }
 
+        const { logger } = await import('@/lib/logger');
+        logger.error('Daily digest generation failed', error instanceof Error ? error : null);
         return NextResponse.json(
             {
                 error: 'Daily digest generation failed',
-                message: errorMessage,
+                message: error instanceof Error ? error.message : String(error),
             },
             { status: 500 }
         );
     }
 }
 
-// Also support GET for manual testing
-export async function GET(request: Request) {
-    return POST(request);
-}
+// GET removed — CRON jobs must use POST to prevent accidental triggering by browsers/crawlers

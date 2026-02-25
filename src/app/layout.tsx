@@ -3,6 +3,8 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { FloatingControls } from "@/components/ui/FloatingControls";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -68,6 +70,24 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "AI News Hub",
+  url: BASE_URL,
+  description: "Automated AI news aggregation with AI-generated summaries and daily audio digests.",
+  publisher: {
+    "@type": "Organization",
+    name: "AI News Hub",
+    url: BASE_URL,
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${BASE_URL}/news?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -75,16 +95,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${manrope.variable} antialiased`}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
-          disableTransitionOnChange
         >
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <div className="flex-grow">{children}</div>
+            <Footer />
+          </div>
           <FloatingControls />
         </ThemeProvider>
       </body>

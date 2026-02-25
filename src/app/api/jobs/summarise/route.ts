@@ -11,7 +11,7 @@ export const maxDuration = 60; // 60 second timeout for Cloud Run
  * CRON endpoint to summarise pending articles.
  * Protected by CRON_SECRET.
  * 
- * Schedule: Hourly (0 * * * *)
+ * Schedule: Twice daily at 6:30 AM / 6:30 PM AWST (30 22,10 * * * UTC)
  */
 export async function POST(request: Request) {
     // Verify CRON secret
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
             message: `Processed ${result.processed} articles: ${result.completed} completed, ${result.failed} failed`,
         });
     } catch (error) {
-        console.error('Summarisation job failed:', error);
+        const { logger } = await import('@/lib/logger');
+        logger.error('Summarisation job failed', error instanceof Error ? error : null);
         return NextResponse.json(
             {
                 error: 'Summarisation job failed',
@@ -39,7 +40,4 @@ export async function POST(request: Request) {
     }
 }
 
-// Also support GET for manual testing
-export async function GET(request: Request) {
-    return POST(request);
-}
+// GET removed — CRON jobs must use POST to prevent accidental triggering by browsers/crawlers

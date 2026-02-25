@@ -10,7 +10,7 @@
 
 import { generateText } from './llm-client';
 import { DAILY_WORD_PROMPT, buildDailyWordInput } from './prompts';
-import { getAdminClient, supabase } from './supabase';
+import { getAdminClient, getSupabaseClient } from './supabase';
 import { DAILY_WORD_REFRESH_DAYS } from './constants';
 import { logger } from './logger';
 
@@ -98,6 +98,9 @@ export interface DailyWordResult {
  * Returns null if no word exists for today.
  */
 export async function getTodayWord(): Promise<DailyWordResult | null> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
     const today = new Date().toISOString().split('T')[0];
 
     const { data } = await supabase
@@ -113,6 +116,9 @@ export async function getTodayWord(): Promise<DailyWordResult | null> {
  * Get paginated history of all daily words.
  */
 export async function getDailyWordHistory(page: number, limit: number) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { data: [], total: 0 };
+
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 

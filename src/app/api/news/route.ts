@@ -1,17 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { ARTICLE_CATEGORY, type ArticleCategory } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_CATEGORIES = new Set<string>(Object.values(ARTICLE_CATEGORY));
+// Compound cursor format: ISO_DATE|UUID
+const COMPOUND_CURSOR_RE = /^(\d{4}-\d{2}-\d{2}T[\d:.\+\-Z]+)\|(.+)$/;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const q = searchParams.get('q')?.trim() || '';
   const source = searchParams.get('source')?.trim() || '';
-  const category = searchParams.get('category')?.trim() || '';
+  const categoryParam = searchParams.get('category')?.trim() || '';
   const cursor = searchParams.get('cursor') || '';
   const limitParam = Number(searchParams.get('limit') || 20);
   const limit = Math.min(Math.max(limitParam, 1), 50);
+
+  // Validate category against known values
+  if (categoryParam && !VALID_CATEGORIES.has(categoryParam)) {
+    return NextResponse.json(
+      { error: `Invalid category. Must be one of: ${[...VALID_CATEGORIES].join(', ')}` },
+      { status: 400 },
+    );
+  }
+  const category: ArticleCategory | '' = categoryParam as ArticleCategory | '';
+
+  // Validate compound cursor format
+  if (cursor && !COMPOUND_CURSOR_RE.test(cursor)) {
+    return NextResponse.json(
+      { error: 'Invalid cursor format. Must be published_at|id.' },
+      { status: 400 },
+    );
+  }
 
   let query = supabase
     .from('articles')
@@ -32,14 +54,20 @@ export async function GET(request: NextRequest) {
     query = query.eq('category', category);
   }
 
-  // Cursor pagination — fetch articles before this published_at value
+  // Compound cursor pagination — prevents skipping articles with same timestamp
   if (cursor) {
-    query = query.lt('published_at', cursor);
+    const match = COMPOUND_CURSOR_RE.exec(cursor);
+    if (match) {
+      const cursorDate = match[1];
+      const cursorId = match[3];
+      query = query.or(`published_at.lt.${cursorDate},and(published_at.eq.${cursorDate},id.lt.${cursorId})`);
+    }
   }
 
-  // Order by published_at descending, fetch one extra to determine nextCursor
+  // Order by published_at descending, then id descending as tiebreaker
   query = query
     .order('published_at', { ascending: false, nullsFirst: false })
+    .order('id', { ascending: false })
     .limit(limit + 1);
 
   const { data, error } = await query;
@@ -54,8 +82,9 @@ export async function GET(request: NextRequest) {
   const articles = data || [];
   const hasMore = articles.length > limit;
   const page = hasMore ? articles.slice(0, limit) : articles;
-  const nextCursor = hasMore && page[page.length - 1]?.published_at
-    ? page[page.length - 1].published_at
+  const lastItem = page[page.length - 1];
+  const nextCursor = hasMore && lastItem?.published_at
+    ? `${lastItem.published_at}|${lastItem.id}`
     : null;
 
   return NextResponse.json(

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/formatters";
@@ -18,30 +19,19 @@ export interface NewsCardProps {
   className?: string;
 }
 
-export function NewsCard({
+function CardContent({
   title,
-  url,
   source,
   publishedAt,
   thumbnailUrl,
   description,
   summaryStatus = "completed",
   category,
-  className,
-}: NewsCardProps) {
+}: Omit<NewsCardProps, "url" | "className">) {
   const timeDisplay = publishedAt ? formatRelativeTime(publishedAt) : "";
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`Read article: ${title}`}
-      className={cn(
-        "bg-[var(--surface)] rounded-[16px] p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 flex gap-5 group cursor-pointer border border-transparent hover:border-primary/20 no-underline focus:outline-none focus:ring-2 focus:ring-primary/50",
-        className
-      )}
-    >
+    <>
       {/* Thumbnail */}
       <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
         {thumbnailUrl ? (
@@ -103,6 +93,48 @@ export function NewsCard({
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
+    </>
+  );
+}
+
+const cardClassName =
+  "bg-[var(--surface)] rounded-[16px] p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 flex gap-5 group cursor-pointer border border-transparent hover:border-primary/20 no-underline focus:outline-none focus:ring-2 focus:ring-primary/50";
+
+export function NewsCard({
+  title,
+  url,
+  source,
+  publishedAt,
+  thumbnailUrl,
+  description,
+  summaryStatus = "completed",
+  category,
+  className,
+}: NewsCardProps) {
+  const contentProps = { title, source, publishedAt, thumbnailUrl, description, summaryStatus, category };
+  const isInternal = url.startsWith("/");
+
+  if (isInternal) {
+    return (
+      <Link
+        href={url}
+        className={cn(cardClassName, className)}
+        aria-label={`Read article: ${title}`}
+      >
+        <CardContent {...contentProps} />
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Read article: ${title}`}
+      className={cn(cardClassName, className)}
+    >
+      <CardContent {...contentProps} />
     </a>
   );
 }

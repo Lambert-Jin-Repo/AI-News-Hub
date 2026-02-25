@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ExternalLink, Clock } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { BackToHome } from "@/components/ui/BackToHome";
 import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { SummaryStatus } from "@/lib/constants";
@@ -15,6 +15,9 @@ interface ArticleDetailProps {
 }
 
 async function getArticle(slug: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
   const { data } = await supabase
     .from("articles")
     .select(
@@ -31,6 +34,9 @@ async function getRelatedArticles(
   source: string | null,
   limit = 4
 ) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   let query = supabase
     .from("articles")
     .select("id, title, slug, source, published_at, thumbnail_url")
@@ -77,13 +83,29 @@ export default async function ArticleDetailPage({
     : null;
   const summaryStatus = article.summary_status as SummaryStatus;
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    datePublished: article.published_at || undefined,
+    description: article.ai_summary || article.raw_excerpt || undefined,
+    image: article.thumbnail_url || undefined,
+    author: { "@type": "Organization", name: article.source || "Unknown" },
+    publisher: { "@type": "Organization", name: "AI News Hub" },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `/news/${article.slug}`,
+    },
+  };
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
-      {/* Back link */}
-      <div className="flex items-center justify-between mb-8">
-        <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-0" />
-        <BackToHome variant="icon" />
-      </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: "News", href: "/news" }, { label: article.title }]} className="mb-8" />
 
       {/* Article header */}
       <article>
@@ -167,7 +189,7 @@ export default async function ArticleDetailPage({
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {relatedArticles.map((related) => (
-              <a
+              <Link
                 key={related.id}
                 href={related.slug ? `/news/${related.slug}` : "#"}
                 className="bg-[var(--surface)] rounded-xl p-4 shadow-soft hover:shadow-soft-hover transition-all border border-transparent hover:border-primary/20 no-underline group"
@@ -200,7 +222,7 @@ export default async function ArticleDetailPage({
                     )}
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </section>

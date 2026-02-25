@@ -4,10 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockGenerateText = vi.fn();
 vi.mock('../llm-client', () => ({
   generateText: (...args: unknown[]) => mockGenerateText(...args),
-  LLMError: class LLMError extends Error {
-    provider = 'gemini';
-    isSafetyBlock = false;
-  },
 }));
 
 vi.mock('../constants', () => ({
@@ -236,7 +232,8 @@ describe('summarisePendingArticles', () => {
       { id: '1', title: 'Bad Article', raw_excerpt: 'Bad content', source: null },
     ];
 
-    const safetyError = { isSafetyBlock: true, provider: 'gemini', message: 'blocked' };
+    const { AppError, ErrorCode } = await import('../errors');
+    const safetyError = new AppError('blocked', ErrorCode.SAFETY_BLOCK);
     mockGenerateText.mockRejectedValue(safetyError);
 
     const { summarisePendingArticles } = await import('../summariser');
@@ -248,10 +245,11 @@ describe('summarisePendingArticles', () => {
 
   it('maps quota errors to failed_quota', async () => {
     mockArticlesData = [
-      { id: '1', title: 'Article', raw_excerpt: null, source: null },
+      { id: '1', title: 'Article', raw_excerpt: 'Some content', source: null },
     ];
 
-    mockGenerateText.mockRejectedValue(new Error('API quota exceeded'));
+    const { AppError, ErrorCode } = await import('../errors');
+    mockGenerateText.mockRejectedValue(new AppError('API quota exceeded', ErrorCode.QUOTA_EXCEEDED));
 
     const { summarisePendingArticles } = await import('../summariser');
     const result = await summarisePendingArticles();
@@ -261,7 +259,7 @@ describe('summarisePendingArticles', () => {
 
   it('maps generic errors to skipped', async () => {
     mockArticlesData = [
-      { id: '1', title: 'Article', raw_excerpt: null, source: null },
+      { id: '1', title: 'Article', raw_excerpt: 'Some content', source: null },
     ];
 
     mockGenerateText.mockRejectedValue(new Error('Network timeout'));

@@ -1,17 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { PRICING_MODEL, type PricingModel } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_PRICING = new Set<string>(Object.values(PRICING_MODEL));
+// Compound cursor format: ISO_DATE|UUID
+const COMPOUND_CURSOR_RE = /^(\d{4}-\d{2}-\d{2}T[\d:.\+\-Z]+)\|(.+)$/;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const q = searchParams.get('q')?.trim() || '';
   const category = searchParams.get('category')?.trim() || '';
-  const pricing = searchParams.get('pricing')?.trim() || '';
+  const pricingParam = searchParams.get('pricing')?.trim() || '';
   const cursor = searchParams.get('cursor') || '';
   const limitParam = Number(searchParams.get('limit') || 24);
   const limit = Math.min(Math.max(limitParam, 1), 50);
+
+  // Validate pricing model against known values
+  if (pricingParam && !VALID_PRICING.has(pricingParam)) {
+    return NextResponse.json(
+      { error: `Invalid pricing. Must be one of: ${[...VALID_PRICING].join(', ')}` },
+      { status: 400 },
+    );
+  }
+  const pricing: PricingModel | '' = pricingParam as PricingModel | '';
+
+  // Validate compound cursor format
+  if (cursor && !COMPOUND_CURSOR_RE.test(cursor)) {
+    return NextResponse.json(
+      { error: 'Invalid cursor format. Must be date_added|id.' },
+      { status: 400 },
+    );
+  }
 
   let query = supabase
     .from('tools')
@@ -33,14 +55,20 @@ export async function GET(request: NextRequest) {
     query = query.eq('pricing_model', pricing);
   }
 
-  // Cursor pagination — fetch tools before this date_added value
+  // Compound cursor pagination — prevents skipping tools with same date
   if (cursor) {
-    query = query.lt('date_added', cursor);
+    const match = COMPOUND_CURSOR_RE.exec(cursor);
+    if (match) {
+      const cursorDate = match[1];
+      const cursorId = match[3];
+      query = query.or(`date_added.lt.${cursorDate},and(date_added.eq.${cursorDate},id.lt.${cursorId})`);
+    }
   }
 
-  // Order by date_added descending, fetch one extra to determine nextCursor
+  // Order by date_added descending, then id descending as tiebreaker
   query = query
     .order('date_added', { ascending: false, nullsFirst: false })
+    .order('id', { ascending: false })
     .limit(limit + 1);
 
   const { data, error } = await query;
@@ -55,8 +83,9 @@ export async function GET(request: NextRequest) {
   const tools = data || [];
   const hasMore = tools.length > limit;
   const page = hasMore ? tools.slice(0, limit) : tools;
-  const nextCursor = hasMore && page[page.length - 1]?.date_added
-    ? page[page.length - 1].date_added
+  const lastItem = page[page.length - 1];
+  const nextCursor = hasMore && lastItem?.date_added
+    ? `${lastItem.date_added}|${lastItem.id}`
     : null;
 
   return NextResponse.json(

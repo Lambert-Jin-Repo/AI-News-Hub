@@ -1,5 +1,3 @@
-import { BackToHome } from "@/components/ui/BackToHome";
-
 export const metadata = {
     title: "About — AI News Hub",
     description: "Learn more about AI News Hub, your daily source for AI industry news and tools.",
@@ -8,12 +6,9 @@ export const metadata = {
 export default function AboutPage() {
     return (
         <main className="max-w-3xl mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
-                    About AI News Hub
-                </h1>
-                <BackToHome variant="icon" />
-            </div>
+            <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-8">
+                About AI News Hub
+            </h1>
 
             <div className="prose dark:prose-invert max-w-none">
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">

@@ -1,8 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { NewsFeed } from "./news-feed";
-import { BackToHome } from "@/components/ui/BackToHome";
 
-export const revalidate = 3600;
+export const revalidate = 300; // 5 minutes — news updates frequently
 
 export const metadata = {
   title: "AI News — AI News Hub",
@@ -10,6 +9,9 @@ export const metadata = {
 };
 
 async function getInitialArticles() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select(
@@ -22,6 +24,9 @@ async function getInitialArticles() {
 }
 
 async function getSources() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select("source")
@@ -33,14 +38,21 @@ async function getSources() {
 }
 
 async function getCategories(): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
   const { data } = await supabase
     .from("articles")
     .select("category")
     .not("category", "is", null)
     .order("category");
 
-  if (!data) return [];
-  return [...new Set(data.map((d) => d.category as string).filter(Boolean))];
+  const rows = (data || []) as Array<{ category: string | null }>;
+  const categories = rows
+    .map((row) => row.category)
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(categories)];
 }
 
 export default async function NewsPage() {
@@ -52,12 +64,9 @@ export default async function NewsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
-          AI News
-        </h1>
-        <BackToHome variant="icon" />
-      </div>
+      <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-6">
+        AI News
+      </h1>
       <NewsFeed
         initialArticles={articles}
         sources={sources}

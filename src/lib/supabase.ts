@@ -4,6 +4,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // TypeScript interfaces matching the database schema
 // ---------------------------------------------------------------------------
 
+export interface ArticleMetadata {
+  relevance_score?: number;
+  tech_stack?: string[];
+  key_points?: string[];
+  provider?: string;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -19,7 +26,7 @@ export interface Article {
   is_featured: boolean;
   is_archived: boolean;
   category: string | null;
-  ai_metadata: Record<string, unknown> | null;
+  ai_metadata: ArticleMetadata | null;
 }
 
 export interface DailyDigest {
@@ -108,18 +115,42 @@ export interface Database {
 }
 
 // ---------------------------------------------------------------------------
-// Supabase clients
+// Supabase clients (lazy initialization to handle build-time missing env vars)
 // ---------------------------------------------------------------------------
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 // New key format (2025+): sb_publishable_... replaces legacy anon key
-const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+let _supabaseClient: SupabaseClient | null = null;
+
+/**
+ * Get the public Supabase client — respects RLS policies.
+ * Returns null if env vars are missing (e.g., during CI build).
+ */
+export function getSupabaseClient(): SupabaseClient | null {
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return null;
+  }
+  if (!_supabaseClient) {
+    _supabaseClient = createClient(supabaseUrl, supabasePublishableKey);
+  }
+  return _supabaseClient;
+}
 
 /**
  * Public Supabase client — respects RLS policies.
  * Use for read operations from the frontend or public API routes.
+ * @deprecated Use getSupabaseClient() for null-safety during builds
  */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabasePublishableKey);
+export const supabase: SupabaseClient = (() => {
+  if (!supabaseUrl || !supabasePublishableKey) {
+    // Return a dummy client that will fail at runtime but not at build time
+    // This allows Next.js to complete static analysis
+    return {} as SupabaseClient;
+  }
+  return createClient(supabaseUrl, supabasePublishableKey);
+})();
 
 /**
  * Admin Supabase client — bypasses RLS.
@@ -129,8 +160,8 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabasePublis
 export function getAdminClient(): SupabaseClient {
   // New key format (2025+): sb_secret_... replaces legacy service_role key
   const secretKey = process.env.SUPABASE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error('SUPABASE_SECRET_KEY is not set — admin client unavailable');
+  if (!secretKey || !supabaseUrl) {
+    throw new Error('SUPABASE_SECRET_KEY or SUPABASE_URL is not set — admin client unavailable');
   }
   return createClient(supabaseUrl, secretKey);
 }
