@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, ChevronRight } from "lucide-react";
-import { getSupabaseClient, type Workflow, type WorkflowStep } from "@/lib/supabase";
+import { getSupabaseClient, type Workflow } from "@/lib/supabase";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { ToolCard } from "@/components/cards/ToolCard";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";

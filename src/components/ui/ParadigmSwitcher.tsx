@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useParadigm, PARADIGMS, type Paradigm } from "@/components/providers/ParadigmProvider";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { useParadigm, PARADIGMS } from "@/components/providers/ParadigmProvider";
 import { Palette, Check } from "lucide-react";
 
 const PARADIGM_META: Record<string, { label: string; color: string; desc: string }> = {
@@ -14,12 +14,8 @@ const PARADIGM_META: Record<string, { label: string; color: string; desc: string
 export function ParadigmSwitcher() {
   const { paradigm, setParadigm } = useParadigm();
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Close on outside click
   useEffect(() => {
