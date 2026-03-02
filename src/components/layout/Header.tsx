@@ -22,7 +22,7 @@ export function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-[var(--surface)]/90 backdrop-blur-md border-b border-[#e7f3f2] dark:border-[#2A3E3C]">
+    <nav className="sticky top-0 z-50 w-full border-b border-[var(--border)]" style={{ background: `var(--surface)`, backdropFilter: `blur(var(--backdrop-blur, 12px))`, opacity: 0.95 }}>
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
