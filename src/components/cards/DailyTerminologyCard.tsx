@@ -56,7 +56,7 @@ export function DailyTerminologyCard() {
     };
 
     return (
-        <div className="bg-[var(--surface)] rounded-[16px] shadow-soft p-6 relative overflow-hidden group">
+        <div className="paradigm-card p-6 relative overflow-hidden group">
             {/* Decorative gradient orb */}
             <div className="absolute top-0 right-0 size-32 bg-accent/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
 

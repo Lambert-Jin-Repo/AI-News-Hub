@@ -6,7 +6,7 @@ import { Terminal, Mail } from "lucide-react";
 export function Footer() {
     return (
         <footer
-            className="mt-12 bg-[#EBEBDF] dark:bg-[#0c1a19] border-t border-gray-200 dark:border-gray-800 py-10"
+            className="mt-12 bg-[var(--surface)] border-t border-[var(--border)] py-10"
             role="contentinfo"
         >
             <div className="max-w-7xl mx-auto px-6">

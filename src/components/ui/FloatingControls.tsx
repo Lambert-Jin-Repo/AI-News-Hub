@@ -35,7 +35,8 @@ export function FloatingControls() {
                 type="button"
                 onClick={scrollToTop}
                 className={cn(
-                    "p-3 rounded-full bg-primary text-white shadow-lg transition-all duration-300 hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
+                    "p-3 rounded-full shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer",
+                    "bg-[var(--accent-solid,theme(colors.primary))] text-white hover:opacity-90",
                     isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
                 )}
                 aria-label="Scroll to top"

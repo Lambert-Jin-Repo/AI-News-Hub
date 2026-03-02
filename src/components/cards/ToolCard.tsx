@@ -109,7 +109,7 @@ function CardContent({
 }
 
 const cardClassName =
-  "block bg-[var(--surface)] rounded-2xl p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 border border-transparent hover:border-primary/20 group no-underline";
+  "block paradigm-card p-5 hover:shadow-soft-hover transition-all duration-300 hover:border-primary/20 group no-underline";
 
 export function ToolCard({
   name,
