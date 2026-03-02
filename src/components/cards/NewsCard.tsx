@@ -98,7 +98,7 @@ function CardContent({
 }
 
 const cardClassName =
-  "bg-[var(--surface)] rounded-[16px] p-5 shadow-soft hover:shadow-soft-hover transition-all duration-300 flex gap-5 group cursor-pointer border border-transparent hover:border-primary/20 no-underline focus:outline-none focus:ring-2 focus:ring-primary/50";
+  "paradigm-card p-5 flex gap-5 group cursor-pointer no-underline focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 export function NewsCard({
   title,
