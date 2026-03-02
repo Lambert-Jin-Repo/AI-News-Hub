@@ -107,6 +107,7 @@ export default function RootLayout({
         className={`${manrope.variable} antialiased paradigm-page-bg`}
         suppressHydrationWarning
       >
+        <div className="scroll-progress" aria-hidden="true" />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

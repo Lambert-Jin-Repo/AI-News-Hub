@@ -152,7 +152,7 @@ export default async function Home() {
       {/* Latest Headlines */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold tracking-tight">Latest Headlines</h2>
+          <h2 className="text-2xl font-bold tracking-tight scroll-reveal-heading">Latest Headlines</h2>
           <Link
             href="/news"
             className="text-sm font-bold text-primary hover:underline flex items-center gap-1 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#102220] rounded-sm"

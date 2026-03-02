@@ -98,7 +98,7 @@ function CardContent({
 }
 
 const cardClassName =
-  "paradigm-card p-5 flex gap-5 group cursor-pointer no-underline focus:outline-none focus:ring-2 focus:ring-primary/50";
+  "paradigm-card p-5 flex gap-5 group cursor-pointer no-underline focus:outline-none focus:ring-2 focus:ring-primary/50 scroll-reveal";
 
 export function NewsCard({
   title,
