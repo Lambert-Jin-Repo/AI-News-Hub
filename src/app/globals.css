@@ -342,3 +342,107 @@
   pointer-events: none;
   z-index: -1;
 }
+
+/* ── Bento Layout Variant: Homepage ── */
+.home-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .home-hero-grid {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .home-hero-grid > :first-child {
+    grid-column: span 8;
+  }
+
+  .home-sidebar {
+    grid-column: span 4;
+  }
+}
+
+[data-paradigm="bento"] .home-hero-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  [data-paradigm="bento"] .home-hero-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  [data-paradigm="bento"] .home-hero-grid > :first-child {
+    grid-column: span 3;
+    grid-row: span 2;
+  }
+
+  [data-paradigm="bento"] .home-sidebar {
+    grid-column: span 1;
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+/* ── News Card Grid ── */
+.news-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .news-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .news-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+[data-paradigm="bento"] .news-card-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  [data-paradigm="bento"] .news-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  [data-paradigm="bento"] .news-card-grid > :first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+}
+
+/* ── Digest Timeline Layout ── */
+.digest-timeline-layout {
+  border-left: 2px solid var(--border);
+  margin-left: 1rem;
+  padding-left: 2rem;
+}
+
+.digest-timeline-layout > * + * {
+  margin-top: 2rem;
+}
+
+[data-paradigm="bento"] .digest-timeline-layout {
+  border-left: none;
+  margin-left: 0;
+  padding-left: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+[data-paradigm="bento"] .digest-timeline-layout > * + * {
+  margin-top: 0;
+}
+
+[data-paradigm="bento"] .digest-timeline-layout .absolute {
+  display: none;
+}

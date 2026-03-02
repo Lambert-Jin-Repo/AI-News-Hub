@@ -129,7 +129,7 @@ export default async function Home() {
   return (
     <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Hero Section Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="home-hero-grid gap-6">
         {/* Hero Left: Daily Briefing */}
         <DailyBriefingHero
           displayDate={displayDate}
@@ -139,7 +139,7 @@ export default async function Home() {
         />
 
         {/* Hero Right: Audio & Featured & Terminology */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="home-sidebar flex flex-col gap-6">
           <AudioPlayerCard digest={digest} />
           <FeaturedToolCard toolsCount={stats.tools} />
           <DailyTerminologyCard />
@@ -162,7 +162,7 @@ export default async function Home() {
           </Link>
         </div>
         {articles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="news-card-grid gap-6">
             {articles.map((article) => (
               <NewsCard
                 key={article.id}
