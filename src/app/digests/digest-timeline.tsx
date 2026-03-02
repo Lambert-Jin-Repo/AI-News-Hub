@@ -138,7 +138,7 @@ export function DigestTimeline({
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={handlePrevDay}
-          className="p-2 rounded-lg bg-[var(--surface)] shadow-soft hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          className="p-2 paradigm-card hover:opacity-80 cursor-pointer"
           aria-label="Previous day"
         >
           <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -148,12 +148,12 @@ export function DigestTimeline({
           value={selectedDate}
           max={todayString()}
           onChange={(e) => handleDateChange(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-[var(--surface)] text-sm text-[#0d1b1a] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="px-4 py-2 paradigm-card text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
         <button
           onClick={handleNextDay}
           disabled={!selectedDate || selectedDate >= todayString()}
-          className="p-2 rounded-lg bg-[var(--surface)] shadow-soft hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 paradigm-card hover:opacity-80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Next day"
         >
           <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />

@@ -31,7 +31,7 @@ export function DigestCard({
   return (
     <div
       className={cn(
-        "bg-[var(--surface)] rounded-2xl shadow-soft overflow-hidden",
+        "paradigm-card overflow-hidden",
         className
       )}
     >
