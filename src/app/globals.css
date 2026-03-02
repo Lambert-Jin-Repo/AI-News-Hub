@@ -529,3 +529,41 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ── Per-Paradigm Visual Polish ── */
+
+/* Brutalist: hover transform */
+[data-paradigm="brutalist"] .paradigm-card:hover {
+  transform: translate(-2px, -2px);
+}
+
+[data-paradigm="brutalist"] a,
+[data-paradigm="brutalist"] button {
+  transition-timing-function: steps(3);
+}
+
+/* Glass: shimmer on surfaces */
+[data-paradigm="glass"] .paradigm-card {
+  position: relative;
+}
+
+[data-paradigm="glass"] .paradigm-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* M3E: subtle scale on press */
+[data-paradigm="m3e"] .paradigm-card:active {
+  transform: scale(0.98);
+  transition-duration: 100ms;
+}
