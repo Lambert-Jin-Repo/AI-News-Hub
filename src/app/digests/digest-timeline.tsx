@@ -183,7 +183,7 @@ export function DigestTimeline({
         </div>
       ) : (
         /* Timeline */
-        <div className="border-l-2 border-gray-200 dark:border-gray-700 ml-4 pl-8 space-y-8">
+        <div className="digest-timeline-layout">
           {digests.map((digest) => (
             <div key={digest.id} className="relative">
               {/* Timeline dot */}
