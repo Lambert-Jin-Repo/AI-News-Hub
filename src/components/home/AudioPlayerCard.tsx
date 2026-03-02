@@ -38,7 +38,7 @@ export function AudioPlayerCard({ digest }: AudioPlayerCardProps) {
     };
 
     return (
-        <div className="bg-[var(--surface)] text-[var(--foreground)] rounded-xl border border-[var(--border)] p-6 flex flex-col justify-between min-h-[220px] relative group">
+        <div className="paradigm-card p-6 flex flex-col justify-between min-h-[220px] relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none rounded-xl"></div>
             <div>
                 <div className="flex items-start justify-between mb-2">

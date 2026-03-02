@@ -11,7 +11,7 @@ interface StatsRowProps {
 
 export function StatsRow({ stats }: StatsRowProps) {
     return (
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
+        <div className="paradigm-card py-6 px-8 flex flex-col md:flex-row justify-around items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
             <div className="flex items-center gap-4 px-6 w-full md:w-auto justify-center md:justify-start">
                 <div className="p-2 bg-accent/10 rounded-md text-accent border border-accent/20">
                     <FileText className="w-5 h-5" />

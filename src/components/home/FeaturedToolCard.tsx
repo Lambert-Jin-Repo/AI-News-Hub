@@ -9,7 +9,7 @@ export function FeaturedToolCard({ toolsCount }: FeaturedToolCardProps) {
     return (
         <Link
             href="/tools"
-            className="bg-[var(--surface)] text-[var(--foreground)] rounded-xl border border-[var(--border)] p-6 flex flex-col justify-center relative group hover:border-primary/50 transition-colors cursor-pointer no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#102220]"
+            className="paradigm-card p-6 flex flex-col justify-center relative group hover:border-primary/50 transition-colors cursor-pointer no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#102220]"
         >
             {/* Decorative shapes */}
             <div className="absolute top-0 right-0 size-32 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
