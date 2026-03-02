@@ -104,3 +104,19 @@ All hardcoded `text-[#0d1b1a]`, `dark:text-white`, `dark:text-gray-*`, `dark:bg-
 ### Key Takeaway
 
 7. **Always include overflow containment in card/grid components**: Cards in CSS Grid or Flexbox can exceed their cell bounds if they contain long unbreakable text. Always pair flex/grid children with `overflow: hidden` and `min-width: 0` as a baseline.
+
+---
+
+## 🔧 Bug Fix Session — Bento Layout
+
+**Date:** 2 Mar 2026 (evening, session 2)
+
+### Issues Fixed
+
+1. **Landing page showing bento layout** — The homepage "Latest Headlines" used `.card-grid` which bento overrides with an asymmetric 4-column layout. Replaced with `.news-card-grid` (a uniform grid alias with no bento overrides).
+
+2. **Bento only affecting first 7 cards** — The `:nth-child()` selectors in the bento `.card-grid` rules only targeted children 1-7. Changed to `:nth-child(7n+1)` through `:nth-child(7n+7)` so the pattern repeats every 7 cards for grids of any size.
+
+### Key Takeaway
+
+8. **Use `An+B` functional notation for repeating grid patterns**: CSS `:nth-child(An+B)` is essential when you want a visual pattern to repeat across dynamically-sized collections. Fixed selectors like `:nth-child(5)` only match once.

@@ -409,7 +409,7 @@
   }
 }
 
-/* Bento variant: asymmetric layout with featured cells */
+/* Bento variant: asymmetric layout with featured cells (repeating every 7 cards) */
 [data-paradigm="bento"] .card-grid {
   gap: 1rem;
 }
@@ -420,29 +420,29 @@
     grid-auto-rows: minmax(160px, auto);
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(1) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+1) {
     grid-column: span 2;
     grid-row: span 2;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(2),
-  [data-paradigm="bento"] .card-grid> :nth-child(3) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+2),
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+3) {
     grid-column: span 2;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(4) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+4) {
     grid-column: span 2;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(5) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+5) {
     grid-column: span 1;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(6) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+6) {
     grid-column: span 1;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(7) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+7) {
     grid-column: span 2;
   }
 }
@@ -452,20 +452,20 @@
     grid-template-columns: repeat(4, 1fr);
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(2),
-  [data-paradigm="bento"] .card-grid> :nth-child(3) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+2),
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+3) {
     grid-column: span 1;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(5) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+5) {
     grid-column: span 2;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(6) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+6) {
     grid-column: span 1;
   }
 
-  [data-paradigm="bento"] .card-grid> :nth-child(7) {
+  [data-paradigm="bento"] .card-grid> :nth-child(7n+7) {
     grid-column: span 1;
   }
 }

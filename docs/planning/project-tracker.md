@@ -676,6 +676,18 @@ curl http://localhost:3000/api/health
 ### 2026-03-02 — Antigravity — Branch: main
 **Status:** Complete
 **Summary:**
+- Fix: Disabled bento grid on landing page — replaced `card-grid` with `news-card-grid` in homepage "Latest Headlines" section
+- Fix: Bento layout now repeats across all cards — changed `.card-grid` bento `:nth-child(N)` selectors to `:nth-child(7n+N)` so the asymmetric pattern cycles every 7 cards instead of stopping after the first 7
+- Build verified: `npm run build` passes (exit code 0)
+**Files Changed (2):**
+- `src/app/page.tsx` — `card-grid` → `news-card-grid`
+- `src/app/globals.css` — repeating `7n+X` bento selectors
+**Issues:** None.
+**Next:** N/A — bug fix complete.
+
+### 2026-03-02 — Antigravity — Branch: main
+**Status:** Complete
+**Summary:**
 - Fix: Sub-nav panel text unreadable under certain themes — `FilterBar.tsx` inactive buttons now use `border border-[var(--border)]` with `hover:text-[var(--foreground)]` for visibility across all paradigms (glass, m3e, brutalist, bento)
 - Fix: News cards overflowing screen edge — added `overflow: hidden` and `min-width: 0` to `.paradigm-card` base class in `globals.css`, and `overflow-hidden min-w-0` to `NewsCard.tsx` card container
 - Fix: News page `<main>` now has `overflow-hidden` to clip any accidental overflow
