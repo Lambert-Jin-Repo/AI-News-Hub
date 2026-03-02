@@ -104,7 +104,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${manrope.variable} antialiased`}
+        className={`${manrope.variable} antialiased paradigm-page-bg`}
         suppressHydrationWarning
       >
         <ThemeProvider
