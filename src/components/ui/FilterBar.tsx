@@ -61,7 +61,7 @@ export function FilterBar({
               "px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer",
               isActive
                 ? "bg-primary text-white shadow-sm"
-                : "bg-[var(--surface)] text-[var(--muted-foreground)] hover:bg-[var(--border)]"
+                : "bg-[var(--surface)] text-[var(--muted-foreground)] border border-[var(--border)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/20"
             )}
           >
             {option.label}

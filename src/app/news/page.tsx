@@ -63,7 +63,7 @@ export default async function NewsPage() {
   ]);
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8">
+    <main className="max-w-6xl mx-auto px-4 py-8 overflow-hidden">
       <h1 className="text-3xl paradigm-heading text-[var(--foreground)] mb-6">
         AI News
       </h1>

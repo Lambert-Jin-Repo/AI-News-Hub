@@ -88,3 +88,19 @@ All hardcoded `text-[#0d1b1a]`, `dark:text-white`, `dark:text-gray-*`, `dark:bg-
 4. **Scroll-driven animations degrade gracefully**: Using `@supports (animation-timeline: view())` ensures browsers without support just skip the animation
 5. **Replace hardcoded colors early**: Leaving `dark:text-gray-400` scattered across 35 files creates a large migration debt — use CSS variables from the start
 6. **Subagent-driven development works well for large refactors**: 18 tasks executed via fresh subagents with spec + quality reviews caught issues early
+
+---
+
+## 🔧 Bug Fix Session — Theme Text Visibility & Layout Overflow
+
+**Date:** 2 Mar 2026 (evening)
+
+### Issues Fixed
+
+1. **Sub-nav panel text unreadable across paradigms** — `FilterBar.tsx` inactive buttons used `hover:bg-[var(--border)]` with no visible border, making them nearly invisible in the glass paradigm where `--surface` is semi-transparent. Added `border border-[var(--border)]` and `hover:text-[var(--foreground)]` for clear delineation across all 4 paradigms × 2 themes.
+
+2. **News cards overflowing screen edge** — `NewsCard.tsx` and the `.paradigm-card` CSS class lacked `overflow: hidden` and `min-width: 0`, allowing long titles to push cards beyond the parent grid bounds. Added both properties to the CSS class and the component class string. Also added `overflow-hidden` to the news page `<main>` container.
+
+### Key Takeaway
+
+7. **Always include overflow containment in card/grid components**: Cards in CSS Grid or Flexbox can exceed their cell bounds if they contain long unbreakable text. Always pair flex/grid children with `overflow: hidden` and `min-width: 0` as a baseline.

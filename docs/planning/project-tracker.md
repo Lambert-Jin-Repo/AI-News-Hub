@@ -673,6 +673,21 @@ curl http://localhost:3000/api/health
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
 
+### 2026-03-02 — Antigravity — Branch: main
+**Status:** Complete
+**Summary:**
+- Fix: Sub-nav panel text unreadable under certain themes — `FilterBar.tsx` inactive buttons now use `border border-[var(--border)]` with `hover:text-[var(--foreground)]` for visibility across all paradigms (glass, m3e, brutalist, bento)
+- Fix: News cards overflowing screen edge — added `overflow: hidden` and `min-width: 0` to `.paradigm-card` base class in `globals.css`, and `overflow-hidden min-w-0` to `NewsCard.tsx` card container
+- Fix: News page `<main>` now has `overflow-hidden` to clip any accidental overflow
+- Build verified: `npm run build` passes (exit code 0)
+**Files Changed (4):**
+- `src/app/globals.css` — paradigm-card overflow containment
+- `src/app/news/page.tsx` — overflow-hidden on main
+- `src/components/cards/NewsCard.tsx` — overflow-hidden min-w-0
+- `src/components/ui/FilterBar.tsx` — visible border + hover states
+**Issues:** None.
+**Next:** N/A — bug fix complete.
+
 ### 2026-02-19 — Antigravity — Branch: main
 **Status:** Complete
 **Summary:**
