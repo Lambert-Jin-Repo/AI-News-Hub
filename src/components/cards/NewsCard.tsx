@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TransitionLink } from "@/components/ui/TransitionLink";
 import { ArrowRight, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/formatters";
@@ -116,13 +116,13 @@ export function NewsCard({
 
   if (isInternal) {
     return (
-      <Link
+      <TransitionLink
         href={url}
         className={cn(cardClassName, className)}
         aria-label={`Read article: ${title}`}
       >
         <CardContent {...contentProps} />
-      </Link>
+      </TransitionLink>
     );
   }
 

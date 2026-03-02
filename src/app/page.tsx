@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { TransitionLink } from "@/components/ui/TransitionLink";
 import { NewsCard } from "@/components/cards/NewsCard";
 import { DailyTerminologyCard } from "@/components/cards/DailyTerminologyCard";
 import { getSupabaseClient } from "@/lib/supabase";
@@ -153,13 +153,13 @@ export default async function Home() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-tight scroll-reveal-heading">Latest Headlines</h2>
-          <Link
+          <TransitionLink
             href="/news"
             className="text-sm font-bold text-primary hover:underline flex items-center gap-1 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#102220] rounded-sm"
           >
             View Archive
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </TransitionLink>
         </div>
         {articles.length > 0 ? (
           <div className="news-card-grid gap-6">

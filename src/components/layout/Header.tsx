@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { TransitionLink } from "@/components/ui/TransitionLink";
 import { usePathname } from "next/navigation";
 import { Terminal, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -37,7 +38,7 @@ export function Header() {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link
+            <TransitionLink
               key={link.label}
               href={link.href}
               className={
@@ -47,7 +48,7 @@ export function Header() {
               }
             >
               {link.label}
-            </Link>
+            </TransitionLink>
           ))}
         </div>
 
@@ -76,7 +77,7 @@ export function Header() {
         <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-[var(--surface)]">
           <div className="px-6 py-4 space-y-1">
             {navLinks.map((link) => (
-              <Link
+              <TransitionLink
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
@@ -87,7 +88,7 @@ export function Header() {
                 }
               >
                 {link.label}
-              </Link>
+              </TransitionLink>
             ))}
             <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
               <ThemeToggle />
