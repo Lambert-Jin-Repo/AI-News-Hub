@@ -21,7 +21,7 @@ function renderMarkdownInline(text: string): string {
 
 export function DailyBriefingHero({ displayDate, digestSections, digest, sectionIcons }: DailyBriefingHeroProps) {
     return (
-        <div className="lg:col-span-8 bg-[var(--surface)] text-[var(--foreground)] rounded-xl border border-[var(--border)] p-6 relative overflow-hidden group">
+        <div className="lg:col-span-8 paradigm-card p-6 relative overflow-hidden group text-[var(--foreground)]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-6">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
@@ -34,7 +34,7 @@ export function DailyBriefingHero({ displayDate, digestSections, digest, section
                     {displayDate}
                 </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold leading-[1.15] mb-6">
+            <h1 className="text-4xl md:text-5xl paradigm-heading leading-[1.15] mb-6">
                 Your Daily <span className="text-primary">AI Briefing</span>
             </h1>
             <div className="prose dark:prose-invert max-w-none space-y-4">
