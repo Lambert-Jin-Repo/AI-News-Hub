@@ -386,10 +386,91 @@
   }
 }
 
-/* ── News Card Grid ── */
+/* ── Card Grid (shared by news, tools, and any card listing) ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Bento variant: asymmetric layout with featured cells */
+[data-paradigm="bento"] .card-grid {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  [data-paradigm="bento"] .card-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(160px, auto);
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(1) {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(2),
+  [data-paradigm="bento"] .card-grid > :nth-child(3) {
+    grid-column: span 2;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(4) {
+    grid-column: span 2;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(5) {
+    grid-column: span 1;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(6) {
+    grid-column: span 1;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(7) {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-paradigm="bento"] .card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(2),
+  [data-paradigm="bento"] .card-grid > :nth-child(3) {
+    grid-column: span 1;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(5) {
+    grid-column: span 2;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(6) {
+    grid-column: span 1;
+  }
+
+  [data-paradigm="bento"] .card-grid > :nth-child(7) {
+    grid-column: span 1;
+  }
+}
+
+/* Backwards-compat alias */
 .news-card-grid {
   display: grid;
   grid-template-columns: 1fr;
+  gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
@@ -401,21 +482,6 @@
 @media (min-width: 1024px) {
   .news-card-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-[data-paradigm="bento"] .news-card-grid {
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) {
-  [data-paradigm="bento"] .news-card-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  [data-paradigm="bento"] .news-card-grid > :first-child {
-    grid-column: span 2;
-    grid-row: span 2;
   }
 }
 

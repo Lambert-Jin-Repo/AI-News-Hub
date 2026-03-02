@@ -180,7 +180,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
             </p>
           )}
 
-          <div className="news-card-grid">
+          <div className="card-grid">
             {articles.map((article) => (
               <NewsCard
                 key={article.id}

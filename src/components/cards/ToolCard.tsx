@@ -109,7 +109,7 @@ function CardContent({
 }
 
 const cardClassName =
-  "block paradigm-card p-5 hover:shadow-soft-hover transition-all duration-300 hover:border-primary/20 group no-underline";
+  "block paradigm-card p-5 hover:shadow-soft-hover transition-all duration-300 hover:border-primary/20 group no-underline scroll-reveal";
 
 export function ToolCard({
   name,

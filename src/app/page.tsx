@@ -162,7 +162,7 @@ export default async function Home() {
           </TransitionLink>
         </div>
         {articles.length > 0 ? (
-          <div className="news-card-grid gap-6">
+          <div className="card-grid">
             {articles.map((article) => (
               <NewsCard
                 key={article.id}

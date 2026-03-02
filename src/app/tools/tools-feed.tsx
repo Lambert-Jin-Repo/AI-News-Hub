@@ -175,7 +175,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
 
       {/* Tool grid */}
       {loadingType === "refresh" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="card-grid">
           {Array.from({ length: 6 }).map((_, i) => (
             <ToolCardSkeleton key={i} />
           ))}
@@ -188,7 +188,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
             </p>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="card-grid">
             {tools.map((tool) => (
               <ToolCard
                 key={tool.id}
@@ -206,7 +206,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
 
           {/* Load more skeletons */}
           {loadingType === "more" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            <div className="card-grid mt-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <ToolCardSkeleton key={i} />
               ))}
