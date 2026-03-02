@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ParadigmProvider } from "@/components/providers/ParadigmProvider";
 import { FloatingControls } from "@/components/ui/FloatingControls";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -110,12 +111,14 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem={false}
         >
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <div className="flex-grow">{children}</div>
-            <Footer />
-          </div>
-          <FloatingControls />
+          <ParadigmProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <div className="flex-grow">{children}</div>
+              <Footer />
+            </div>
+            <FloatingControls />
+          </ParadigmProvider>
         </ThemeProvider>
       </body>
     </html>
