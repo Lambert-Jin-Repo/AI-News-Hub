@@ -42,7 +42,7 @@ export default async function DailyWordsPage({ searchParams }: PageProps) {
             <div className="flex flex-col gap-4">
                 <Link
                     href="/"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-primary transition-colors no-underline w-fit"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:text-primary transition-colors no-underline w-fit"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Home
@@ -53,10 +53,10 @@ export default async function DailyWordsPage({ searchParams }: PageProps) {
                         <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white">
+                        <h1 className="text-3xl font-bold text-[var(--foreground)]">
                             Daily Word Archive
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-[var(--muted-foreground)] mt-1">
                             {total} AI terminologies explained by MiniMax — refreshed every 15 days
                         </p>
                     </div>
@@ -78,11 +78,11 @@ export default async function DailyWordsPage({ searchParams }: PageProps) {
                 </div>
             ) : (
                 <div className="text-center py-16">
-                    <Sparkles className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
+                    <Sparkles className="w-12 h-12 text-[var(--border)] mx-auto mb-4" />
+                    <p className="text-[var(--muted-foreground)] text-lg font-medium">
                         No words yet
                     </p>
-                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+                    <p className="text-[var(--muted-foreground)] text-sm mt-1">
                         Daily AI terminology will appear here once the pipeline runs.
                     </p>
                 </div>
@@ -100,13 +100,13 @@ export default async function DailyWordsPage({ searchParams }: PageProps) {
                             Previous
                         </Link>
                     ) : (
-                        <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-300 dark:text-gray-600 cursor-not-allowed">
+                        <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-[var(--border)] cursor-not-allowed">
                             <ArrowLeft className="w-4 h-4" />
                             Previous
                         </span>
                     )}
 
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-sm font-medium text-[var(--muted-foreground)]">
                         Page {page} of {totalPages}
                     </span>
 
@@ -119,7 +119,7 @@ export default async function DailyWordsPage({ searchParams }: PageProps) {
                             <ArrowRight className="w-4 h-4" />
                         </Link>
                     ) : (
-                        <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-300 dark:text-gray-600 cursor-not-allowed">
+                        <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-[var(--border)] cursor-not-allowed">
                             Next
                             <ArrowRight className="w-4 h-4" />
                         </span>

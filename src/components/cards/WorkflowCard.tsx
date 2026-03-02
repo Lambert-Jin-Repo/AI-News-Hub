@@ -47,14 +47,14 @@ export function WorkflowCard({
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-bold text-[#0d1b1a] dark:text-white group-hover:text-primary transition-colors">
+        <h3 className="font-bold text-[var(--foreground)] group-hover:text-primary transition-colors">
           {title}
         </h3>
-        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
+        <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
       </div>
 
       {description && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
+        <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 mb-3">
           {description}
         </p>
       )}
@@ -63,7 +63,7 @@ export function WorkflowCard({
       <div className="flex items-center gap-1.5 mb-3">
         {steps.map((step, i) => (
           <div key={step.order} className="flex items-center">
-            <div className="w-7 h-7 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg overflow-hidden bg-[var(--surface)] flex items-center justify-center">
               {toolLogos[step.toolSlug] ? (
                 <SafeImage
                   src={toolLogos[step.toolSlug]!}
@@ -74,13 +74,13 @@ export function WorkflowCard({
                   fallbackSrc="/placeholders/tool-placeholder.svg"
                 />
               ) : (
-                <span className="text-xs font-bold text-gray-400">
+                <span className="text-xs font-bold text-[var(--muted-foreground)]">
                   {step.label.charAt(0)}
                 </span>
               )}
             </div>
             {i < steps.length - 1 && (
-              <ChevronRight className="w-3 h-3 text-gray-300 dark:text-gray-600 mx-0.5" />
+              <ChevronRight className="w-3 h-3 text-[var(--border)] mx-0.5" />
             )}
           </div>
         ))}
@@ -95,12 +95,12 @@ export function WorkflowCard({
           {difficulty}
         </span>
         {estimatedMinutes && (
-          <span className="text-xs text-gray-400 flex items-center gap-1">
+          <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
             <Clock className="w-3 h-3" />
             ~{estimatedMinutes} min
           </span>
         )}
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[var(--muted-foreground)]">
           {steps.length} steps
         </span>
       </div>

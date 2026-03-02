@@ -21,12 +21,12 @@ export function DailyWordCard({ term, content, displayDate }: DailyWordCardProps
             <div className="space-y-2 mt-3 text-sm">
                 {lines.map((line, i) => {
                     let formattedLine = line;
-                    formattedLine = formattedLine.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#0d1b1a] dark:text-white">$1</strong>');
+                    formattedLine = formattedLine.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--foreground)]">$1</strong>');
 
                     return (
                         <p
                             key={i}
-                            className="text-gray-600 dark:text-gray-300 leading-relaxed"
+                            className="text-[var(--muted-foreground)] leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: formattedLine }}
                         />
                     );
@@ -46,11 +46,11 @@ export function DailyWordCard({ term, content, displayDate }: DailyWordCardProps
                         <span className="p-1.5 bg-accent/10 rounded-full text-accent">
                             <Sparkles className="w-3.5 h-3.5" />
                         </span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                             Daily Word
                         </span>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
                         <Calendar className="w-3 h-3" />
                         {formattedDate}
                     </div>

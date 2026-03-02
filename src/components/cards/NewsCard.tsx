@@ -33,7 +33,7 @@ function CardContent({
   return (
     <>
       {/* Thumbnail */}
-      <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[var(--surface)] flex items-center justify-center">
         {thumbnailUrl ? (
           <SafeImage
             src={thumbnailUrl}
@@ -44,7 +44,7 @@ function CardContent({
             fallbackSrc="/placeholders/news-placeholder.svg"
           />
         ) : (
-          <span className="text-2xl font-bold text-gray-300 dark:text-gray-600">
+          <span className="text-2xl font-bold text-[var(--border)]">
             {source.charAt(0)}
           </span>
         )}
@@ -53,7 +53,7 @@ function CardContent({
       <div className="flex flex-col justify-between flex-1 min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-300">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted-foreground)]">
               {source}
             </span>
             {category && (
@@ -63,10 +63,10 @@ function CardContent({
             )}
             {timeDisplay && (
               <>
-                <span className="text-[10px] text-gray-300 dark:text-gray-500">
+                <span className="text-[10px] text-[var(--border)]">
                   &bull;
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-300 flex items-center gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted-foreground)] flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {timeDisplay}
                 </span>
@@ -79,11 +79,11 @@ function CardContent({
               </span>
             )}
           </div>
-          <h3 className="text-lg font-bold text-[#0d1b1a] dark:text-white leading-tight mb-2 group-hover:text-primary transition-colors">
+          <h3 className="text-lg font-bold text-[var(--foreground)] leading-tight mb-2 group-hover:text-primary transition-colors">
             {title}
           </h3>
           {description && (
-            <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-2">
+            <p className="text-sm text-[var(--muted-foreground)] line-clamp-2">
               {description}
             </p>
           )}

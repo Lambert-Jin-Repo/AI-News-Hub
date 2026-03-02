@@ -102,12 +102,12 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailProps
 
       {/* Header card */}
       <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-soft mb-8">
-        <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-2">
+        <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">
           {workflow.title}
         </h1>
 
         {workflow.description && (
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+          <p className="text-[var(--muted-foreground)] leading-relaxed mb-4">
             {workflow.description}
           </p>
         )}
@@ -121,12 +121,12 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailProps
             {workflow.difficulty}
           </span>
           {workflow.estimated_minutes && (
-            <span className="text-sm text-gray-400 flex items-center gap-1">
+            <span className="text-sm text-[var(--muted-foreground)] flex items-center gap-1">
               <Clock className="w-4 h-4" />
               ~{workflow.estimated_minutes} min
             </span>
           )}
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-[var(--muted-foreground)]">
             {steps.length} steps
           </span>
         </div>
@@ -134,38 +134,38 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailProps
 
       {/* Vertical stepper */}
       <section>
-        <h2 className="text-xl font-bold text-[#0d1b1a] dark:text-white mb-6">
+        <h2 className="text-xl font-bold text-[var(--foreground)] mb-6">
           Steps
         </h2>
-        <div className="border-l-2 border-gray-200 dark:border-gray-700 ml-4 pl-8 space-y-8">
+        <div className="border-l-2 border-[var(--border)] ml-4 pl-8 space-y-8">
           {steps.map((step) => {
             const tool = toolDetails[step.toolSlug];
             return (
               <div key={step.order} className="relative">
                 {/* Timeline dot */}
                 <div className={cn(
-                  "absolute -left-[41px] top-2 w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 shadow-sm",
+                  "absolute -left-[41px] top-2 w-4 h-4 rounded-full border-2 border-[var(--surface)] shadow-sm",
                   step.isOptional
-                    ? "bg-gray-300 dark:bg-gray-600"
+                    ? "bg-[var(--border)]"
                     : "bg-primary"
                 )} />
 
                 {/* Step number */}
-                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-sm font-semibold text-[var(--muted-foreground)] mb-2">
                   Step {step.order}
                   {step.isOptional && (
-                    <span className="ml-2 text-xs text-gray-400 font-normal">(Optional)</span>
+                    <span className="ml-2 text-xs text-[var(--muted-foreground)] font-normal">(Optional)</span>
                   )}
                 </p>
 
                 {/* Step card */}
                 <div className={cn(
                   "bg-[var(--surface)] rounded-xl p-4 shadow-soft border border-transparent",
-                  step.isOptional && "opacity-75 border-dashed border-gray-200 dark:border-gray-700"
+                  step.isOptional && "opacity-75 border-dashed border-[var(--border)]"
                 )}>
                   <div className="flex gap-4 items-start">
                     {/* Tool logo */}
-                    <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-[var(--surface)] flex items-center justify-center">
                       {tool?.logo_url ? (
                         <SafeImage
                           src={tool.logo_url}
@@ -176,7 +176,7 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailProps
                           fallbackSrc="/placeholders/tool-placeholder.svg"
                         />
                       ) : (
-                        <span className="text-lg font-bold text-gray-400">
+                        <span className="text-lg font-bold text-[var(--muted-foreground)]">
                           {step.label.charAt(0)}
                         </span>
                       )}
@@ -184,16 +184,16 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailProps
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-[#0d1b1a] dark:text-white">
+                        <h3 className="font-bold text-[var(--foreground)]">
                           {step.label}
                         </h3>
                         {tool && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-[var(--muted-foreground)]">
                             using {tool.name}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-[var(--muted-foreground)]">
                         {step.description}
                       </p>
 

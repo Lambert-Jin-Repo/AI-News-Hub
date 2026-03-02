@@ -36,7 +36,7 @@ function CardContent({
   return (
     <div className="flex gap-4">
       {/* Logo */}
-      <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-[var(--surface)]">
         {logoUrl ? (
           <SafeImage
             src={logoUrl}
@@ -47,7 +47,7 @@ function CardContent({
             fallbackSrc="/placeholders/tool-placeholder.svg"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-[var(--muted-foreground)]">
             {name.charAt(0)}
           </div>
         )}
@@ -56,23 +56,23 @@ function CardContent({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-[#0d1b1a] dark:text-white group-hover:text-primary transition-colors truncate">
+          <h3 className="font-bold text-[var(--foreground)] group-hover:text-primary transition-colors truncate">
             {name}
           </h3>
           {!isInternal && (
-            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary shrink-0 mt-0.5" />
+            <ExternalLink className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-primary shrink-0 mt-0.5" />
           )}
         </div>
 
         {description && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+          <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 mt-1">
             {description}
           </p>
         )}
 
         {/* Meta */}
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+          <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
             {category}
           </span>
           <span
@@ -91,13 +91,13 @@ function CardContent({
             {tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full"
+                className="text-xs bg-[var(--surface)] text-[var(--muted-foreground)] px-2 py-0.5 rounded-full"
               >
                 {tag}
               </span>
             ))}
             {tags.length > 3 && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--muted-foreground)]">
                 +{tags.length - 3}
               </span>
             )}

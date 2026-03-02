@@ -101,14 +101,14 @@ export function AudioPlayer({
       {/* Info & Progress */}
       <div className="flex-1 min-w-0">
         {title && (
-          <p className="text-sm font-semibold text-[#0d1b1a] dark:text-white mb-1 truncate">
+          <p className="text-sm font-semibold text-[var(--foreground)] mb-1 truncate">
             {title}
           </p>
         )}
 
         {/* Progress Bar */}
         <div
-          className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer"
+          className="h-1.5 bg-[var(--border)] rounded-full cursor-pointer"
           onClick={seek}
           role="progressbar"
           aria-valuenow={progress}
@@ -122,7 +122,7 @@ export function AudioPlayer({
         </div>
 
         {/* Time */}
-        <div className="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex justify-between mt-1 text-xs text-[var(--muted-foreground)]">
           <span>{currentTime}</span>
           <span>{duration || "--:--"}</span>
         </div>
@@ -131,7 +131,7 @@ export function AudioPlayer({
       {/* Mute Button */}
       <button
         onClick={toggleMute}
-        className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+        className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
         aria-label={isMuted ? "Unmute" : "Mute"}
       >
         {isMuted ? (

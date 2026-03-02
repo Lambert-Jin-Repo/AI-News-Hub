@@ -36,16 +36,16 @@ export function DigestCard({
       )}
     >
       {/* Header */}
-      <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+      <div className="p-5 border-b border-[var(--border)]">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-primary/10 rounded-lg">
             <Calendar className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-bold text-[#0d1b1a] dark:text-white">
+            <h3 className="font-bold text-[var(--foreground)]">
               Daily Digest
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[var(--muted-foreground)]">
               {formattedDate}
             </p>
           </div>
@@ -53,7 +53,7 @@ export function DigestCard({
 
         {/* Stats */}
         <div className="flex gap-4 mt-3">
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
             <FileText className="w-4 h-4" />
             <span>{articleCount} articles</span>
           </div>
@@ -70,7 +70,7 @@ export function DigestCard({
       <div className="p-5">
         <p
           className={cn(
-            "text-gray-600 dark:text-gray-300 leading-relaxed",
+            "text-[var(--muted-foreground)] leading-relaxed",
             !expanded && "line-clamp-4"
           )}
         >
@@ -88,7 +88,7 @@ export function DigestCard({
       {/* Audio Pending State */}
       {audioStatus === "pending" && (
         <div className="px-5 pb-5">
-          <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] bg-[var(--surface)] rounded-lg p-3">
             <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <span>Audio is being generated...</span>
           </div>

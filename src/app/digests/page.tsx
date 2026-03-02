@@ -48,7 +48,7 @@ export default async function DigestsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-6">
+      <h1 className="text-3xl font-bold text-[var(--foreground)] mb-6">
         Daily Digests
       </h1>
       <DigestTimeline

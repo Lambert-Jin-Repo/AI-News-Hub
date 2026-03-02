@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ParadigmProvider } from "@/components/providers/ParadigmProvider";
 import { FloatingControls } from "@/components/ui/FloatingControls";
-import { ParadigmSwitcher } from "@/components/ui/ParadigmSwitcher";
+
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
@@ -120,7 +120,6 @@ export default function RootLayout({
               <Footer />
             </div>
             <FloatingControls />
-            <ParadigmSwitcher />
           </ParadigmProvider>
         </ThemeProvider>
       </body>

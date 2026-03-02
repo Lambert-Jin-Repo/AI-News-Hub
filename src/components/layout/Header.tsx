@@ -6,6 +6,7 @@ import { TransitionLink } from "@/components/ui/TransitionLink";
 import { usePathname } from "next/navigation";
 import { Terminal, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ParadigmSwitcher } from "@/components/ui/ParadigmSwitcher";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -30,7 +31,7 @@ export function Header() {
           <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
             <Terminal className="w-6 h-6" />
           </div>
-          <h2 className="text-[#0d1b1a] dark:text-white text-xl font-bold tracking-tight">
+          <h2 className="text-[var(--foreground)] text-xl font-bold tracking-tight">
             AI News Hub
           </h2>
         </Link>
@@ -43,8 +44,8 @@ export function Header() {
               href={link.href}
               className={
                 isActive(link.href)
-                  ? "text-[#0d1b1a] dark:text-gray-200 text-sm font-semibold hover:text-primary transition-colors"
-                  : "text-[#556966] dark:text-gray-300 text-sm font-medium hover:text-primary transition-colors"
+                  ? "text-[var(--foreground)] text-sm font-semibold hover:text-primary transition-colors"
+                  : "text-[var(--muted-foreground)] text-sm font-medium hover:text-primary transition-colors"
               }
             >
               {link.label}
@@ -52,14 +53,15 @@ export function Header() {
           ))}
         </div>
 
-        {/* Desktop: Theme Toggle */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Desktop: Theme Toggle + Paradigm Switcher */}
+        <div className="hidden md:flex items-center gap-2">
+          <ParadigmSwitcher />
           <ThemeToggle />
         </div>
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-[#0d1b1a] dark:text-white p-2 cursor-pointer"
+          className="md:hidden text-[var(--foreground)] p-2 cursor-pointer"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileOpen}
@@ -74,7 +76,7 @@ export function Header() {
 
       {/* Mobile Menu Dropdown */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-[var(--surface)]">
+        <div className="md:hidden border-t border-[var(--border)] bg-[var(--surface)]">
           <div className="px-6 py-4 space-y-1">
             {navLinks.map((link) => (
               <TransitionLink
@@ -83,14 +85,15 @@ export function Header() {
                 onClick={() => setMobileOpen(false)}
                 className={
                   isActive(link.href)
-                    ? "block py-3 text-[#0d1b1a] dark:text-white font-semibold hover:text-primary transition-colors"
-                    : "block py-3 text-[#556966] dark:text-gray-300 font-medium hover:text-primary transition-colors"
+                    ? "block py-3 text-[var(--foreground)] font-semibold hover:text-primary transition-colors"
+                    : "block py-3 text-[var(--muted-foreground)] font-medium hover:text-primary transition-colors"
                 }
               >
                 {link.label}
               </TransitionLink>
             ))}
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="pt-3 border-t border-[var(--border)] flex items-center gap-3">
+              <ParadigmSwitcher />
               <ThemeToggle />
             </div>
           </div>

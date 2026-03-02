@@ -67,13 +67,13 @@ function CopyButton({ text }: { text: string }) {
     return (
         <button
             onClick={handleCopy}
-            className="shrink-0 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            className="shrink-0 p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors cursor-pointer"
             title={copied ? "Copied!" : "Copy to clipboard"}
         >
             {copied ? (
                 <Check className="w-3.5 h-3.5 text-green-500" />
             ) : (
-                <Copy className="w-3.5 h-3.5 text-gray-400" />
+                <Copy className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
             )}
         </button>
     );
@@ -91,18 +91,18 @@ function CollapsibleSection({
     const [open, setOpen] = useState(defaultOpen);
 
     return (
-        <div className="border-t border-gray-100 dark:border-gray-800">
+        <div className="border-t border-[var(--border)]">
             <button
                 onClick={() => setOpen(!open)}
                 className="w-full flex items-center justify-between py-3 text-left cursor-pointer group"
             >
-                <span className="text-sm font-bold text-[#0d1b1a] dark:text-white group-hover:text-primary transition-colors">
+                <span className="text-sm font-bold text-[var(--foreground)] group-hover:text-primary transition-colors">
                     {title}
                 </span>
                 {open ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                    <ChevronUp className="w-4 h-4 text-[var(--muted-foreground)]" />
                 ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
                 )}
             </button>
             {open && <div className="pb-4">{children}</div>}
@@ -124,11 +124,11 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
         <div className="animate-in fade-in duration-500 space-y-0">
             {/* Header */}
             <div className="mb-4">
-                <h3 className="text-xl font-bold text-[#0d1b1a] dark:text-white flex items-center gap-2">
+                <h3 className="text-xl font-bold text-[var(--foreground)] flex items-center gap-2">
                     <span className="text-2xl">{data.emoji}</span>
                     {data.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-[var(--muted-foreground)] mt-1">
                     {data.description}
                 </p>
             </div>
@@ -143,14 +143,14 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                                 <div
                                     className={cn(
                                         "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors",
-                                        "bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700",
+                                        "bg-[var(--surface)] border border-[var(--border)]",
                                         tool.isExternal
                                             ? "hover:border-amber-300 dark:hover:border-amber-600"
                                             : "hover:border-primary/40"
                                     )}
                                 >
                                     {/* Icon */}
-                                    <div className="w-7 h-7 rounded-lg overflow-hidden bg-white dark:bg-gray-700 flex items-center justify-center shrink-0 border border-gray-100 dark:border-gray-600">
+                                    <div className="w-7 h-7 rounded-lg overflow-hidden bg-[var(--surface)] flex items-center justify-center shrink-0 border border-[var(--border)]">
                                         {logo ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
@@ -159,7 +159,7 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                                                 className="w-5 h-5 object-contain"
                                             />
                                         ) : (
-                                            <span className="text-xs font-bold text-gray-400">
+                                            <span className="text-xs font-bold text-[var(--muted-foreground)]">
                                                 {tool.name.charAt(0)}
                                             </span>
                                         )}
@@ -167,14 +167,14 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                                     {/* Info */}
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-1">
-                                            <span className="font-medium text-[#0d1b1a] dark:text-white truncate">
+                                            <span className="font-medium text-[var(--foreground)] truncate">
                                                 {tool.name}
                                             </span>
                                             {tool.isExternal && (
                                                 <ExternalLink className="w-3 h-3 text-amber-500 shrink-0" />
                                             )}
                                         </div>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate block">
+                                        <span className="text-xs text-[var(--muted-foreground)] truncate block">
                                             {tool.role}
                                         </span>
                                     </div>
@@ -223,16 +223,16 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                             </div>
                             <div className="min-w-0 pt-0.5">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-sm text-[#0d1b1a] dark:text-white">
+                                    <span className="font-medium text-sm text-[var(--foreground)]">
                                         {step.title}
                                     </span>
                                     {step.toolName && (
-                                        <span className="text-xs px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs px-1.5 py-0.5 rounded-md bg-[var(--surface)] text-[var(--muted-foreground)]">
                                             {step.toolName}
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                                <p className="text-xs text-[var(--muted-foreground)] mt-0.5 leading-relaxed">
                                     {step.description}
                                 </p>
                             </div>
@@ -248,7 +248,7 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                         {data.tips.map((tip, i) => (
                             <li
                                 key={i}
-                                className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed pl-1"
+                                className="text-sm text-[var(--muted-foreground)] leading-relaxed pl-1"
                             >
                                 {tip}
                             </li>
@@ -263,11 +263,11 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                     <div className="space-y-3">
                         {data.promptTemplates.map((pt, i) => (
                             <div key={i}>
-                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+                                <span className="text-xs font-medium text-[var(--muted-foreground)] mb-1 block">
                                     {pt.label}
                                 </span>
-                                <div className="flex items-start gap-2 bg-gray-50 dark:bg-gray-800/60 rounded-xl px-3.5 py-2.5 border border-gray-100 dark:border-gray-700">
-                                    <p className="text-sm text-[#0d1b1a] dark:text-gray-200 leading-relaxed flex-1 font-mono whitespace-pre-wrap">
+                                <div className="flex items-start gap-2 bg-[var(--surface)] rounded-xl px-3.5 py-2.5 border border-[var(--border)]">
+                                    <p className="text-sm text-[var(--foreground)] leading-relaxed flex-1 font-mono whitespace-pre-wrap">
                                         {pt.prompt}
                                     </p>
                                     <CopyButton text={pt.prompt} />

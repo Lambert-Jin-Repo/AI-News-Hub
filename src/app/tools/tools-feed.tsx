@@ -183,7 +183,7 @@ export function ToolsFeed({ initialTools, categories }: ToolsFeedProps) {
       ) : (
         <>
           {tools.length === 0 && (
-            <p className="text-center text-gray-500 dark:text-gray-400 py-12">
+            <p className="text-center text-[var(--muted-foreground)] py-12">
               No tools found.
             </p>
           )}

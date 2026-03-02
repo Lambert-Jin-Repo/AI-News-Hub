@@ -29,7 +29,7 @@ export function SafeImage({
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-gray-100 dark:bg-gray-800",
+          "flex items-center justify-center bg-[var(--surface)]",
           className
         )}
         role="img"
@@ -52,7 +52,7 @@ export function SafeImage({
       {!loaded && (
         <div
           className={cn(
-            "absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-inherit",
+            "absolute inset-0 bg-[var(--surface)] animate-pulse rounded-inherit",
             className
           )}
           aria-hidden="true"

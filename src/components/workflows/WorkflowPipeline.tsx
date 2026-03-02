@@ -38,8 +38,8 @@ export function WorkflowPipeline({ steps, toolLogos, className }: WorkflowPipeli
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center",
-                step.isOptional && "border border-dashed border-gray-300 dark:border-gray-600"
+                "w-10 h-10 rounded-xl overflow-hidden bg-[var(--surface)] flex items-center justify-center",
+                step.isOptional && "border border-dashed border-[var(--border)]"
               )}
             >
               {toolLogos[step.toolSlug] ? (
@@ -52,16 +52,16 @@ export function WorkflowPipeline({ steps, toolLogos, className }: WorkflowPipeli
                   fallbackSrc="/placeholders/tool-placeholder.svg"
                 />
               ) : (
-                <span className="text-sm font-bold text-gray-400">
+                <span className="text-sm font-bold text-[var(--muted-foreground)]">
                   {step.label.charAt(0)}
                 </span>
               )}
             </div>
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 text-center leading-tight truncate w-full">
+            <span className="text-xs font-medium text-[var(--muted-foreground)] text-center leading-tight truncate w-full">
               {step.label}
             </span>
             {step.isOptional && (
-              <span className="text-[10px] text-gray-400 uppercase tracking-wide">Optional</span>
+              <span className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wide">Optional</span>
             )}
           </div>
 
@@ -69,7 +69,7 @@ export function WorkflowPipeline({ steps, toolLogos, className }: WorkflowPipeli
           {i < steps.length - 1 && (
             <ChevronRight
               className={cn(
-                "w-4 h-4 text-gray-300 dark:text-gray-600 shrink-0 mx-0.5",
+                "w-4 h-4 text-[var(--border)] shrink-0 mx-0.5",
                 step.isOptional && "opacity-50"
               )}
             />

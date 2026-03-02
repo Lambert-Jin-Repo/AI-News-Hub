@@ -141,7 +141,7 @@ export function DigestTimeline({
           className="p-2 paradigm-card hover:opacity-80 cursor-pointer"
           aria-label="Previous day"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          <ChevronLeft className="w-5 h-5 text-[var(--muted-foreground)]" />
         </button>
         <input
           type="date"
@@ -156,7 +156,7 @@ export function DigestTimeline({
           className="p-2 paradigm-card hover:opacity-80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Next day"
         >
-          <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          <ChevronRight className="w-5 h-5 text-[var(--muted-foreground)]" />
         </button>
         {selectedDate && (
           <button
@@ -174,7 +174,7 @@ export function DigestTimeline({
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : digests.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-[var(--muted-foreground)]">
           <p className="text-lg">
             {selectedDate
               ? `No digest available for ${formatDateLabel(selectedDate)}.`
@@ -187,10 +187,10 @@ export function DigestTimeline({
           {digests.map((digest) => (
             <div key={digest.id} className="relative">
               {/* Timeline dot */}
-              <div className="absolute -left-[41px] top-2 w-4 h-4 rounded-full bg-primary border-2 border-white dark:border-gray-900 shadow-sm" />
+              <div className="absolute -left-[41px] top-2 w-4 h-4 rounded-full bg-primary border-2 border-[var(--surface)] shadow-sm" />
 
               {/* Date label */}
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
+              <p className="text-sm font-semibold text-[var(--muted-foreground)] mb-3">
                 {formatDateLabel(digest.digest_date)}
               </p>
 

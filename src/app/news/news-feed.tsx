@@ -175,7 +175,7 @@ export function NewsFeed({ initialArticles, sources, categories = [] }: NewsFeed
       ) : (
         <>
           {articles.length === 0 && (
-            <p className="text-center text-gray-500 dark:text-gray-400 py-12">
+            <p className="text-center text-[var(--muted-foreground)] py-12">
               No articles found.
             </p>
           )}

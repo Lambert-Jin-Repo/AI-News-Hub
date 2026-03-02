@@ -41,12 +41,12 @@ export function DailyTerminologyCard() {
             <div className="space-y-3 mt-4 text-sm">
                 {lines.map((line, i) => {
                     let formattedLine = line;
-                    formattedLine = formattedLine.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#0d1b1a] dark:text-white">$1</strong>');
+                    formattedLine = formattedLine.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--foreground)]">$1</strong>');
 
                     return (
                         <p
                             key={i}
-                            className="text-gray-600 dark:text-gray-300 leading-relaxed"
+                            className="text-[var(--muted-foreground)] leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: formattedLine }}
                         />
                     );
@@ -66,22 +66,22 @@ export function DailyTerminologyCard() {
                         <span className="p-1.5 bg-accent/10 rounded-full text-accent">
                             <Sparkles className="w-4 h-4" />
                         </span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                             Word of the Day
                         </span>
                     </div>
-                    {loading && <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />}
+                    {loading && <RefreshCw className="w-4 h-4 text-[var(--muted-foreground)] animate-spin" />}
                 </div>
 
                 {loading ? (
                     <div className="space-y-3 animate-pulse">
-                        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mt-4"></div>
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4/6"></div>
+                        <div className="h-6 bg-[var(--border)] rounded w-3/4"></div>
+                        <div className="h-4 bg-[var(--border)] rounded w-full mt-4"></div>
+                        <div className="h-4 bg-[var(--border)] rounded w-5/6"></div>
+                        <div className="h-4 bg-[var(--border)] rounded w-4/6"></div>
                     </div>
                 ) : error ? (
-                    <div className="text-sm text-gray-400 text-center py-4">
+                    <div className="text-sm text-[var(--muted-foreground)] text-center py-4">
                         Could not load today&apos;s terminology.
                     </div>
                 ) : data ? (
@@ -90,7 +90,7 @@ export function DailyTerminologyCard() {
                             {data.term}
                         </h3>
                         {renderContent(data.content)}
-                        <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div className="mt-5 pt-4 border-t border-[var(--border)]">
                             <Link
                                 href="/daily-words"
                                 className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-dark transition-colors no-underline group/link"

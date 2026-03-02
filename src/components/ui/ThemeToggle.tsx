@@ -15,7 +15,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <button className="relative p-2 rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-default size-9">
+      <button className="relative p-2 rounded-full text-[var(--muted-foreground)] bg-[var(--surface)] opacity-50 cursor-default size-9">
         <Sun className="h-5 w-5" />
         <span className="sr-only">Toggle theme</span>
       </button>
@@ -29,8 +29,8 @@ export function ThemeToggle() {
       ref={registerToggleRef}
       onClick={toggleTheme}
       className="relative p-2 rounded-full transition-colors duration-200
-        text-[#0d1b1a] hover:bg-black/5
-        dark:text-white dark:hover:bg-white/10
+        text-[var(--foreground)] hover:bg-black/5
+        dark:hover:bg-white/10
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
     >

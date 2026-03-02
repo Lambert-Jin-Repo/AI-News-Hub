@@ -12,7 +12,7 @@ export function AdvisorLoadingAnimation() {
             {/* Arena */}
             <div className="relative w-64 h-36 mb-4">
                 {/* Ground line */}
-                <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-gray-200 dark:bg-gray-700 rounded-full" />
+                <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-[var(--border)] rounded-full" />
 
                 {/* Left robot */}
                 <div className="absolute bottom-2 left-6 robot-left">
@@ -56,12 +56,12 @@ export function AdvisorLoadingAnimation() {
             </div>
 
             {/* Status text */}
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="loading-text font-medium">AI is crafting your workflow</span>
                 <span className="loading-dots">...</span>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center max-w-xs">
+            <p className="text-xs text-[var(--muted-foreground)] mt-2 text-center max-w-xs">
                 🚀 Our Agent API is experiencing high traffic — this may take 10-20 seconds. Hang tight!
             </p>
         </div>

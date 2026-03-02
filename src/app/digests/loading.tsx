@@ -11,10 +11,10 @@ export default function DigestsLoading() {
         <Skeleton className="h-10 w-10 rounded-lg" />
       </div>
       {/* Timeline */}
-      <div className="border-l-2 border-gray-200 dark:border-gray-700 ml-4 pl-8 space-y-8">
+      <div className="border-l-2 border-[var(--border)] ml-4 pl-8 space-y-8">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="relative">
-            <div className="absolute -left-[41px] w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700" />
+            <div className="absolute -left-[41px] w-4 h-4 rounded-full bg-[var(--border)]" />
             <Skeleton className="h-5 w-40 mb-3" />
             <Skeleton className="rounded-2xl h-64" />
           </div>

@@ -109,7 +109,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
       <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-soft mb-8">
         <div className="flex gap-5 items-start">
           {/* Logo */}
-          <div className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <div className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[var(--surface)]">
             {tool.logo_url ? (
               <SafeImage
                 src={tool.logo_url}
@@ -120,21 +120,21 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
                 fallbackSrc="/placeholders/tool-placeholder.svg"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
+              <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-[var(--muted-foreground)]">
                 {tool.name.charAt(0)}
               </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">
               {tool.name}
             </h1>
 
             {/* Category and pricing badges */}
             <div className="flex items-center gap-2 flex-wrap">
               {tool.category && (
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                <span className="text-xs font-bold uppercase tracking-wide text-[var(--muted-foreground)] bg-[var(--surface)] px-3 py-1 rounded-full">
                   {tool.category}
                 </span>
               )}
@@ -153,7 +153,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
         {/* Description */}
         {tool.description && (
           <div className="mt-6">
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-[var(--muted-foreground)] leading-relaxed">
               {tool.description}
             </p>
           </div>
@@ -165,7 +165,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
             {tool.tags.map((tag: string) => (
               <span
                 key={tag}
-                className="text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full"
+                className="text-sm bg-[var(--surface)] text-[var(--muted-foreground)] px-3 py-1 rounded-full"
               >
                 {tag}
               </span>
@@ -192,7 +192,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
       {/* Used in Workflows */}
       {toolWorkflows.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-[#0d1b1a] dark:text-white mb-4">
+          <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">
             Used in Workflows
           </h2>
           <div className="space-y-3">
@@ -203,16 +203,16 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
                 className="flex items-center justify-between gap-3 bg-[var(--surface)] rounded-xl p-4 shadow-soft hover:shadow-soft-hover transition-all border border-transparent hover:border-primary/20 group no-underline"
               >
                 <div>
-                  <h3 className="font-bold text-[#0d1b1a] dark:text-white group-hover:text-primary transition-colors text-sm">
+                  <h3 className="font-bold text-[var(--foreground)] group-hover:text-primary transition-colors text-sm">
                     {w.title}
                   </h3>
                   {w.description && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">
+                    <p className="text-xs text-[var(--muted-foreground)] line-clamp-1 mt-0.5">
                       {w.description}
                     </p>
                   )}
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary shrink-0 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-primary shrink-0 transition-colors" />
               </Link>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default async function ToolDetailPage({ params }: ToolDetailProps) {
       {/* Related tools */}
       {relatedTools.length > 0 && (
         <section>
-          <h2 className="text-xl font-bold text-[#0d1b1a] dark:text-white mb-4">
+          <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">
             Related Tools
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

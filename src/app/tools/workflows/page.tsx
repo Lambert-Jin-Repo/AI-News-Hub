@@ -63,15 +63,15 @@ export default async function WorkflowsPage() {
         className="mb-8"
       />
 
-      <h1 className="text-3xl font-bold text-[#0d1b1a] dark:text-white mb-2">
+      <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">
         AI Workflows
       </h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-8">
+      <p className="text-[var(--muted-foreground)] mb-8">
         Curated pipelines that combine AI tools into productive workflows.
       </p>
 
       {workflows.length === 0 ? (
-        <p className="text-center py-12 text-gray-400">
+        <p className="text-center py-12 text-[var(--muted-foreground)]">
           No workflows available yet.
         </p>
       ) : (
