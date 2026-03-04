@@ -230,36 +230,40 @@ M2.5 reviews articles approaching archive date → keeps important ones (foundat
 
 ---
 
-## Phase 5: LLM Usage Monitor Dashboard
+## Phase 5: LLM Usage Monitor Dashboard ✅ Complete
 
 > **Priority:** 🔴 Urgent — Need visibility into LLM API usage and costs
 > **Design Doc:** `docs/plans/2026-03-04-llm-dashboard-design.md`
+> **Implementation Doc:** `docs/plans/2026-03-04-llm-dashboard-implementation.md`
+> **Status:** ✅ Complete (2026-03-04) — 110 tests passing, deployed to Cloud Run
 
-### 5a. Usage Logging Infrastructure
+### 5a. Usage Logging Infrastructure ✅
 
-Instrument `generateText()` to log every LLM call to `llm_usage_logs` table. Async, non-blocking.
+Instrumented `generateText()` to log every LLM call to `llm_usage_logs` table. Async, non-blocking.
 
 **Tracks:** provider, model, feature, latency, tokens in/out, success/failure, fallback events.
 
-**Files:** New `src/lib/llm-logger.ts`, modify `src/lib/llm-client.ts`, migration 011
+**Files:** `src/lib/llm-logger.ts`, `src/lib/llm-client.ts`, migration 012
 
-### 5b. Admin Auth & Middleware
+### 5b. Admin Auth & Middleware ✅
 
-Supabase Auth login page + `profiles` table with `is_admin` flag. Next.js middleware protects `/admin/*`.
+Supabase Auth login page + `profiles` table with `is_admin` flag. Next.js proxy (middleware) protects `/admin/*`.
 
-**Files:** New `src/middleware.ts`, `src/app/admin/login/page.tsx`, migration 011 (profiles table)
+**Files:** `src/proxy.ts`, `src/lib/supabase-middleware.ts`, `src/lib/supabase-server.ts`, `src/app/admin/login/page.tsx`, migration 012
 
-### 5c. Dashboard UI
+**Note:** Next.js 16 uses `proxy.ts` instead of deprecated `middleware.ts`. Login uses `createBrowserClient` from `@supabase/ssr` for cookie-based sessions (not `createClient` from `@supabase/supabase-js` which uses localStorage).
+
+### 5c. Dashboard UI ✅
 
 Live dashboard at `/admin/llm-usage` with Recharts. Auto-refresh every 15s.
 
 **Charts:** Calls over time (stacked area), provider distribution (pie), latency by provider (bar), feature breakdown (horizontal bar), fallback event timeline, recent calls table.
 
-**Files:** New `src/app/admin/llm-usage/page.tsx`, `components.tsx`, `src/app/api/admin/llm-usage/route.ts`
+**Files:** `src/app/admin/llm-usage/page.tsx`, `components.tsx`, `src/app/api/admin/llm-usage/route.ts`
 
-### 5d. Data Retention
+### 5d. Data Retention ✅
 
-30-day auto-cleanup via SQL function. Callable from app-level cron or pg_cron.
+30-day auto-cleanup via SQL function `cleanup_old_llm_logs()`. Callable from app-level cron or pg_cron.
 
 ---
 

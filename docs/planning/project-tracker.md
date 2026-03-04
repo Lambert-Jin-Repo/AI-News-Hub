@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-03-04
-**Status:** Phase 7 — LLM Usage Monitor Dashboard (Implemented)
+**Status:** Phase 7 — LLM Usage Monitor Dashboard (Complete)
 
 ---
 
@@ -62,7 +62,7 @@
 | 4 | Polish & Launch | Weeks 8-9 | ✅ Complete | Phase 3 |
 | 5 | LLM Focus Pivot & Summary Enhancement | Weeks 10-11 | ⏳ Not Started | Phase 4 |
 | 6 | AI Workflows Feature | Week 12 | ✅ Complete | Phase 4 |
-| 7 | LLM Usage Monitor Dashboard | Week 13 | ⏳ Planned | Phase 6 |
+| 7 | LLM Usage Monitor Dashboard | Week 13 | ✅ Complete | Phase 6 |
 
 **Status Legend:**
 - ⏳ Not Started
@@ -675,6 +675,20 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-03-04 — Claude Opus — Branch: main (Session 5)
+**Status:** Complete
+**Summary:**
+- Fix: Admin login page stuck at "Signing in..." — `createClient` from `@supabase/supabase-js` stores sessions in localStorage, but the proxy middleware reads from cookies via `@supabase/ssr`. Switched login page to `createBrowserClient` from `@supabase/ssr` for cookie-based sessions.
+- Fix: `NEXT_PUBLIC_*` env vars undefined in Docker build — client components need these inlined at build time. Added `ARG`/`ENV` in Dockerfile and `--build-arg` in deploy.yml.
+- Added try/catch error handling around auth call for robustness.
+- Updated all tracker files, README, and database schema docs.
+**Files Modified (3):**
+- `src/app/admin/login/page.tsx` — `createBrowserClient` from `@supabase/ssr`, try/catch
+- `Dockerfile` — ARG/ENV for NEXT_PUBLIC vars at build stage
+- `.github/workflows/deploy.yml` — `--build-arg` for NEXT_PUBLIC vars
+**Issues:** None.
+**Next:** N/A — deployment bugfixes complete.
 
 ### 2026-03-04 — Claude Opus — Branch: main (Session 4)
 **Status:** Complete

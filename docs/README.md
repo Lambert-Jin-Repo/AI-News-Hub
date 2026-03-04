@@ -23,7 +23,23 @@
 | [rpd-v2.2.md](planning/rpd-v2.2.md) | Product Requirements Document (v2.2) |
 | [implementation-plans.md](planning/implementation-plans.md) | Phase-by-phase implementation plans |
 | [project-tracker.md](planning/project-tracker.md) | Multi-agent project tracking & progress |
-| [feature-update.md](planning/feature-update.md) | MiniMax M2.5 migration & AI automation roadmap |
+| [feature-update.md](planning/feature-update.md) | LLM provider architecture & AI automation roadmap |
+
+## Design & Implementation Plans
+
+| Document | Description |
+|----------|-------------|
+| [2026-03-04-llm-dashboard-design.md](plans/2026-03-04-llm-dashboard-design.md) | LLM Usage Monitor Dashboard design |
+| [2026-03-04-llm-dashboard-implementation.md](plans/2026-03-04-llm-dashboard-implementation.md) | LLM Usage Monitor Dashboard implementation plan |
+| [2026-03-02-multi-paradigm-design-system.md](plans/2026-03-02-multi-paradigm-design-system.md) | Multi-paradigm design system |
+
+## Learning Records
+
+| Document | Description |
+|----------|-------------|
+| [learning-record-2026-03-04.md](learning-record-2026-03-04.md) | MiniMax migration, split providers, LLM dashboard |
+| [learning-record-2026-03-02.md](learning-record-2026-03-02.md) | Multi-paradigm design system |
+| [learning-record-2026-02-25.md](learning-record-2026-02-25.md) | Initial MiniMax integration |
 
 ## Agents
 
