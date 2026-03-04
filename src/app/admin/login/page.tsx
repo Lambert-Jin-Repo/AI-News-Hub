@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 function getSupabaseBrowserClient() {
-  return createClient(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   );
@@ -23,20 +23,25 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const supabase = getSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push('/admin/llm-usage');
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign in failed');
       setLoading(false);
-      return;
     }
-
-    router.push('/admin/llm-usage');
-    router.refresh();
   }
 
   return (
