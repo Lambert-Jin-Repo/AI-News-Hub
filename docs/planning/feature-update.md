@@ -1,7 +1,7 @@
 # Feature Update — MiniMax M2.5 Migration & AI Automation
 
-> **Date:** 2026-02-25
-> **Status:** Planned
+> **Date:** 2026-02-25 (updated 2026-03-04)
+> **Status:** Phase 1 Complete
 > **Goal:** Migrate LLM from Gemini to MiniMax M2.5 (Coding Plan), keep Google Cloud TTS, and add AI-powered automation features.
 
 ---
@@ -70,12 +70,15 @@ If MiniMax is permanently discontinued, rollback to Gemini-based architecture:
 
 ### Changes
 
-| File | Change |
-|------|--------|
-| `src/lib/llm-client.ts` | Replace `callGemini()` with `callMiniMax()` using OpenAI-compatible API |
-| `src/lib/llm-usage.ts` | Simplify — remove Gemini RPD tracking, add basic MiniMax health check |
-| `.env.example` / `.env.local` | Add `MINIMAX_API_KEY`, keep `GEMINI_API_KEY` as optional fallback |
-| `src/lib/constants.ts` | Remove `MAX_ARTICLES_PER_DAY` cap (no longer cost-constrained) |
+| File | Change | Status |
+|------|--------|--------|
+| `src/lib/llm-client.ts` | Replace `callGemini()` with `callMiniMax()` using OpenAI-compatible API | ✅ Done |
+| `src/lib/llm-client.ts` | Configurable `baseURL` via `MINIMAX_BASE_URL` (China default) | ✅ Done (2026-03-04) |
+| `src/lib/llm-usage.ts` | Simplify — remove Gemini RPD tracking, add basic MiniMax health check | ✅ Done |
+| `.env.example` / `.env.local` | Add `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, keep `GEMINI_API_KEY` as optional | ✅ Done |
+| `.github/workflows/deploy.yml` | Add MiniMax env vars to Cloud Run deployment | ✅ Done (2026-03-04) |
+| `src/app/api/workflows/suggest/route.ts` | Increase `maxTokens` to 4096 for reasoning model | ✅ Done (2026-03-04) |
+| `src/lib/constants.ts` | Remove `MAX_ARTICLES_PER_DAY` cap (no longer cost-constrained) | ✅ Done |
 
 ### No Changes Required
 
@@ -230,13 +233,15 @@ M2.5 reviews articles approaching archive date → keeps important ones (foundat
 ## Environment Variables
 
 ```env
-# NEW — MiniMax (primary LLM)
+# MiniMax (primary LLM)
 MINIMAX_API_KEY=your-minimax-api-key
+MINIMAX_BASE_URL=https://api.minimaxi.com/v1   # China (default) or https://api.minimax.io/v1 (Global)
+MINIMAX_MODEL=MiniMax-M2.5
 
-# KEEP — Google Cloud TTS (free tier audio)
+# Google Cloud TTS (free tier audio)
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 
-# KEEP — Groq (LLM fallback)
+# Groq (LLM fallback)
 GROQ_API_KEY=your-groq-api-key
 
 # OPTIONAL — Gemini (additional fallback, can remove after migration)

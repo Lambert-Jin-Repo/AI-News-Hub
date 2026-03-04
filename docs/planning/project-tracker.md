@@ -6,7 +6,7 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-02-19
+**Last Updated:** 2026-03-04
 **Status:** Phase 6 — AI Workflows Feature (Complete)
 
 ---
@@ -673,6 +673,26 @@ curl http://localhost:3000/api/health
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
 
+### 2026-03-04 — Claude Opus — Branch: main
+**Status:** Complete
+**Summary:**
+- Fix: Switched MiniMax API from Global endpoint (`api.minimax.io`) to China endpoint (`api.minimaxi.com`) — China API keys don't authenticate against Global
+- Fix: Added `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_MODEL` to Cloud Run deployment workflow (`deploy.yml`) — these were missing, causing both LLM providers to fail in production (503)
+- Fix: Increased `max_tokens` from 1024 to 4096 for workflow suggest endpoint — MiniMax M2.5 reasoning tokens were consuming the budget, truncating JSON output intermittently
+- Made `baseURL` configurable via `MINIMAX_BASE_URL` env var with China default
+- Deleted redundant `test-minimax-api.cjs` test file
+- Updated `test-minimax.mjs` to use configurable base URL
+- All changes deployed and verified on Cloud Run
+**Files Changed (6):**
+- `src/lib/llm-client.ts` — configurable baseURL
+- `src/app/api/workflows/suggest/route.ts` — maxTokens: 4096
+- `.env.example` — MINIMAX_BASE_URL docs
+- `.github/workflows/deploy.yml` — 3 MiniMax env vars added
+- `test-minimax.mjs` — updated baseURL
+- `test-minimax-api.cjs` — deleted
+**Issues:** None.
+**Next:** N/A — production fix complete.
+
 ### 2026-03-02 — Antigravity — Branch: main
 **Status:** Complete
 **Summary:**
@@ -890,8 +910,10 @@ npm test  # Verify tests still pass
 | `SUPABASE_ANON_KEY` | Supabase anonymous key | Client SDK |
 | `SUPABASE_SERVICE_KEY` | Supabase service role key | Server-side |
 | `CRON_SECRET` | Shared secret for job endpoints | Job triggers |
-| `GEMINI_API_KEY` | Google Gemini API key | LLM summaries |
-| `GEMINI_MODEL` | Gemini model name (default: `gemini-2.0-flash`) | LLM summaries |
+| `MINIMAX_API_KEY` | MiniMax API key (primary LLM) | LLM summaries, workflows |
+| `MINIMAX_BASE_URL` | MiniMax API base URL (default: China) | LLM client |
+| `MINIMAX_MODEL` | MiniMax model name (default: `MiniMax-M2.5`) | LLM client |
+| `GEMINI_API_KEY` | Google Gemini API key | Optional/legacy |
 | `GROQ_API_KEY` | Groq API key (fallback) | LLM fallback |
 
 ---

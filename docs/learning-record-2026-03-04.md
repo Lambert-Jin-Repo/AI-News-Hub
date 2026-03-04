@@ -1,0 +1,104 @@
+# Learning Record — 4 Mar 2026
+
+> MiniMax API endpoint migration (Global → China), Cloud Run deployment fix, and workflow generation reliability improvement.
+
+---
+
+## 📋 What Was Done (4 commits)
+
+| # | Commit | Category |
+|---|--------|----------|
+| 1 | `fix: switch MiniMax API to China endpoint (api.minimaxi.com)` | Infrastructure |
+| 2 | `fix: add MiniMax env vars to Cloud Run deployment` | CI/CD |
+| 3 | `ci: trigger redeploy with updated MiniMax secrets` | CI/CD |
+| 4 | `fix: increase workflow suggest max_tokens to 4096` | Reliability |
+
+**Scale**: ~15 lines changed across 5 files + 1 file deleted.
+
+---
+
+## 🐛 Issues Diagnosed & Fixed
+
+### 1. MiniMax API 401 — Wrong Endpoint for China API Key
+
+**Symptom**: Workflow generation returning 503 in production.
+
+**Root cause**: The MiniMax API key was obtained from the China platform (`platform.minimaxi.com`), but the code was hardcoded to the Global endpoint (`api.minimax.io`). China keys only authenticate against `api.minimaxi.com`.
+
+**Diagnosis**:
+```
+curl → api.minimaxi.com/v1 → 200 OK ✅
+curl → api.minimax.io/v1   → 401 invalid api key ✗
+```
+
+**Fix**: Made `baseURL` configurable via `MINIMAX_BASE_URL` env var, defaulting to the China endpoint.
+
+**Key file**: `src/lib/llm-client.ts` line 61
+
+### 2. Missing Env Vars in Cloud Run Deployment
+
+**Symptom**: Even after fixing the code, production still failed.
+
+**Root cause**: `.github/workflows/deploy.yml` never passed `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, or `MINIMAX_MODEL` to Cloud Run. The deployment had been working before because the old Gemini-based code didn't need MiniMax vars.
+
+**Fix**: Added all 3 MiniMax env vars to the `--update-env-vars` block in `deploy.yml`.
+
+**Lesson**: When migrating LLM providers, the deployment pipeline must be updated too — not just the application code and `.env.local`.
+
+### 3. Intermittent Workflow Generation Failures — Token Truncation
+
+**Symptom**: First workflow generation succeeds, subsequent attempts fail intermittently.
+
+**Root cause**: `max_tokens` was set to 1024 (the default). MiniMax M2.5 is a reasoning model that emits `<think>` blocks before the actual response. Reasoning tokens count toward the `max_tokens` limit. For complex workflow JSON:
+- `<think>` block: 500–1500 tokens (varies per request)
+- JSON output: 600–1200 tokens
+- Total needed: 1100–2700 tokens
+- Budget: only 1024
+
+When the model "thinks" more, the JSON gets truncated mid-way → `JSON.parse` fails → 500 error. This explains the **intermittent** nature — sometimes thinking is short enough to fit.
+
+**Fix**: Increased `maxTokens` to 4096 for the workflow suggest endpoint.
+
+**Key file**: `src/app/api/workflows/suggest/route.ts` line 90
+
+---
+
+## 🏗️ Architecture Decisions
+
+### Configurable Base URL with Sensible Default
+
+Rather than just switching the hardcoded URL, we made it configurable via `MINIMAX_BASE_URL` with a default:
+
+```typescript
+baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
+```
+
+**Why**: If the project later needs to switch to the Global endpoint (different API key), it's a single env var change — no code change or redeployment needed.
+
+---
+
+## 📁 Files Changed
+
+| File | Change |
+|------|--------|
+| `src/lib/llm-client.ts` | Configurable `baseURL` from env var |
+| `src/app/api/workflows/suggest/route.ts` | `maxTokens: 4096` for workflow generation |
+| `.env.local` | Added `MINIMAX_BASE_URL` |
+| `.env.example` | Added `MINIMAX_BASE_URL` with China/Global docs |
+| `.github/workflows/deploy.yml` | Added 3 MiniMax env vars to Cloud Run |
+| `test-minimax.mjs` | Updated to use configurable baseURL |
+| `test-minimax-api.cjs` | Deleted (redundant old test file) |
+
+---
+
+## 🔑 Key Takeaways
+
+1. **MiniMax has separate China and Global endpoints**: `api.minimaxi.com` (China) vs `api.minimax.io` (Global). API keys are region-specific and won't cross-authenticate.
+
+2. **Always update the deployment pipeline when changing env vars**: Local `.env.local` changes don't propagate to Cloud Run. The `deploy.yml` must explicitly pass every env var via `--update-env-vars`, and corresponding GitHub Secrets must be created.
+
+3. **Reasoning models need higher token budgets**: Models like MiniMax M2.5 that emit `<think>` blocks consume tokens before the actual response. Set `max_tokens` to 3-4x the expected output size to account for variable reasoning length.
+
+4. **Test both endpoints when debugging auth issues**: A simple `curl` test to each endpoint immediately revealed which one accepted the key — faster than reading docs or guessing.
+
+5. **Intermittent failures often indicate resource limits**: When something works "sometimes", look for variable resource consumption (tokens, memory, timeouts) rather than logic bugs.
