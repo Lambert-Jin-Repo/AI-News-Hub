@@ -58,7 +58,7 @@ async function callMiniMax(
 
   const client = new OpenAI({
     apiKey,
-    baseURL: 'https://api.minimax.io/v1',
+    baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
   });
 
   const completion = await client.chat.completions.create({
