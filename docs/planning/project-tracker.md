@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-03-04
-**Status:** Phase 6 — AI Workflows Feature (Complete)
+**Status:** Phase 7 — LLM Usage Monitor Dashboard (Planned)
 
 ---
 
@@ -62,6 +62,7 @@
 | 4 | Polish & Launch | Weeks 8-9 | ✅ Complete | Phase 3 |
 | 5 | LLM Focus Pivot & Summary Enhancement | Weeks 10-11 | ⏳ Not Started | Phase 4 |
 | 6 | AI Workflows Feature | Week 12 | ✅ Complete | Phase 4 |
+| 7 | LLM Usage Monitor Dashboard | Week 13 | ⏳ Planned | Phase 6 |
 
 **Status Legend:**
 - ⏳ Not Started
@@ -674,6 +675,20 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-03-04 — Claude Opus — Branch: main (Session 3)
+**Status:** Planning
+**Summary:**
+- Designed LLM Usage Monitor Dashboard (Phase 7)
+- Architecture: `llm_usage_logs` table in Supabase, async fire-and-forget logging in `generateText()`, admin dashboard at `/admin/llm-usage`
+- Auth: Supabase Auth with `profiles.is_admin` flag, Next.js middleware protecting `/admin/*`
+- UI: Recharts for charts (stacked area, pie, bar), auto-refresh polling every 15s
+- Metrics: calls by provider/feature, success rate, latency, token usage, fallback events, recent calls
+- 30-day data retention with auto-cleanup
+- Design doc: `docs/plans/2026-03-04-llm-dashboard-design.md`
+**Files:** Design doc only (no implementation yet)
+**Issues:** None.
+**Next:** Implementation per plan.
 
 ### 2026-03-04 — Claude Opus — Branch: main (Session 2)
 **Status:** Complete

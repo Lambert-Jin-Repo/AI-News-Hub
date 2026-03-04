@@ -2,6 +2,7 @@
 
 > Session 1: MiniMax API endpoint migration (Global → China), Cloud Run deployment fix, and workflow generation reliability improvement.
 > Session 2: Split LLM providers — Gemini 2.5 Flash as default, MiniMax M2.5 reserved for workflow suggest only.
+> Session 3: Designed LLM Usage Monitor Dashboard — Supabase-backed logging, Recharts dashboard, admin auth.
 
 ---
 
@@ -145,3 +146,37 @@ baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
 3. **Rate limiting should match provider cost**: Workflow suggest uses the more expensive MiniMax provider, so rate limit was tightened from 10 → 3 per IP/minute.
 
 4. **Test mocks can differentiate providers by baseURL**: The mock `OpenAI` constructor checks `opts.baseURL` to return different responses for Gemini vs MiniMax, enabling chain-specific test assertions.
+
+---
+
+## Session 3: LLM Usage Monitor Dashboard Design
+
+### 🏗️ Architecture Decision — Why a Dashboard?
+
+**Problem**: No visibility into LLM API usage. Can't see how many calls are made, which providers are failing, latency trends, or token consumption. Current `llm-usage.ts` is in-memory only — resets on every Cloud Run cold start.
+
+**Solution**: Persistent logging to Supabase + admin dashboard with Recharts.
+
+### Key Design Decisions
+
+1. **Async fire-and-forget logging**: `logLLMUsage()` does `INSERT` without `await` — never blocks the LLM response path. If logging fails, it console.errors but doesn't affect the user.
+
+2. **Feature tagging at the caller level**: Each feature passes `feature: 'summarise'` etc. to `generateText()`. This enables per-feature breakdown without parsing prompts.
+
+3. **Server-side aggregation**: The API endpoint does `GROUP BY` / `AVG` / `COUNT` in SQL, not in JavaScript. Keeps payloads small and avoids sending raw rows to the client.
+
+4. **Middleware + API dual auth**: Next.js middleware checks session existence (fast, no DB). API endpoint checks `profiles.is_admin` (accurate, DB query). This means unauthenticated users get redirected immediately, but the admin check happens at the data level.
+
+5. **Auto-refresh polling over Realtime**: 15-second polling is simpler and sufficient for monitoring. Supabase Realtime would add websocket connections and complexity for minimal benefit on a single-user admin panel.
+
+6. **30-day retention**: Prevents unbounded table growth. At ~100 calls/day, 30 days = ~3000 rows — trivial for Supabase.
+
+### 🔑 Key Takeaways (Session 3)
+
+1. **OpenAI SDK returns token usage**: `completion.usage.prompt_tokens` and `completion.usage.completion_tokens` — we were discarding this data. Capturing it is free.
+
+2. **Recharts is lightweight for React**: ~45KB gzipped, declarative API, composes well with Tailwind. No need for heavier options like Tremor or Chart.js.
+
+3. **profiles table is the standard Supabase auth pattern**: Rather than using user metadata, a `profiles` table with `is_admin` is queryable, indexable, and works with RLS policies.
+
+4. **Middleware can't query Supabase DB directly**: It can only check if a session cookie exists. The actual admin role check must happen in the API route or server component.

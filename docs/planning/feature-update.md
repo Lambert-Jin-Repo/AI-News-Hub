@@ -230,6 +230,39 @@ M2.5 reviews articles approaching archive date → keeps important ones (foundat
 
 ---
 
+## Phase 5: LLM Usage Monitor Dashboard
+
+> **Priority:** 🔴 Urgent — Need visibility into LLM API usage and costs
+> **Design Doc:** `docs/plans/2026-03-04-llm-dashboard-design.md`
+
+### 5a. Usage Logging Infrastructure
+
+Instrument `generateText()` to log every LLM call to `llm_usage_logs` table. Async, non-blocking.
+
+**Tracks:** provider, model, feature, latency, tokens in/out, success/failure, fallback events.
+
+**Files:** New `src/lib/llm-logger.ts`, modify `src/lib/llm-client.ts`, migration 011
+
+### 5b. Admin Auth & Middleware
+
+Supabase Auth login page + `profiles` table with `is_admin` flag. Next.js middleware protects `/admin/*`.
+
+**Files:** New `src/middleware.ts`, `src/app/admin/login/page.tsx`, migration 011 (profiles table)
+
+### 5c. Dashboard UI
+
+Live dashboard at `/admin/llm-usage` with Recharts. Auto-refresh every 15s.
+
+**Charts:** Calls over time (stacked area), provider distribution (pie), latency by provider (bar), feature breakdown (horizontal bar), fallback event timeline, recent calls table.
+
+**Files:** New `src/app/admin/llm-usage/page.tsx`, `components.tsx`, `src/app/api/admin/llm-usage/route.ts`
+
+### 5d. Data Retention
+
+30-day auto-cleanup via SQL function. Callable from app-level cron or pg_cron.
+
+---
+
 ## Database Migrations Required
 
 | Phase | Table | Change |
@@ -240,6 +273,8 @@ M2.5 reviews articles approaching archive date → keeps important ones (foundat
 | 3 | New: `weekly_reports` | `id`, `week_start`, `week_end`, `report_text`, `created_at` |
 | 3 | `articles` | Add `related_article_ids` UUID array |
 | 4 | New: `newsletter_subscribers` | `id`, `email`, `subscribed_at`, `is_active` |
+| 5 | New: `llm_usage_logs` | `id`, `created_at`, `provider`, `model`, `feature`, `success`, `latency_ms`, `tokens_in`, `tokens_out`, `error_type`, `is_fallback` |
+| 5 | New: `profiles` | `id` (FK auth.users), `is_admin`, `created_at` |
 
 ---
 
