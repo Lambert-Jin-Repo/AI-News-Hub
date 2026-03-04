@@ -70,6 +70,7 @@ export async function discoverTools(existingToolNames: string[]): Promise<Discov
 
     const result = await generateText(TOOL_DISCOVERY_PROMPT, userContent, {
         maxTokens: 4096,
+        feature: 'tool_discovery',
     });
 
     // Extract JSON from response
@@ -125,6 +126,7 @@ export async function categorizeTools(tools: DiscoveredTool[]): Promise<Categori
 
     const result = await generateText(TOOL_CATEGORY_PROMPT, toolSummary, {
         maxTokens: 2048,
+        feature: 'tool_discovery',
     });
 
     // Extract JSON

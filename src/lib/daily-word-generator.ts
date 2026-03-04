@@ -178,7 +178,7 @@ export async function generateDailyWord(): Promise<GenerateWordResult> {
     // Generate with MiniMax (falls back to Groq)
     logger.info('Generating daily word', { term, date: today, cycleId });
     const userInput = buildDailyWordInput(term);
-    const { text, provider } = await generateText(DAILY_WORD_PROMPT, userInput);
+    const { text, provider } = await generateText(DAILY_WORD_PROMPT, userInput, { feature: 'daily_word' });
 
     // Upsert (overwrite if same term + cycle)
     const { error: insertError } = await supabase
@@ -240,7 +240,7 @@ export async function refreshAllDailyWords(): Promise<{
 
         try {
             const userInput = buildDailyWordInput(term);
-            const { text, provider } = await generateText(DAILY_WORD_PROMPT, userInput);
+            const { text, provider } = await generateText(DAILY_WORD_PROMPT, userInput, { feature: 'daily_word' });
 
             await supabase
                 .from('daily_words')

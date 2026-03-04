@@ -81,7 +81,7 @@ async function summariseArticle(article: ArticleForSummary): Promise<Summarisati
             source: article.source,
         });
 
-        const response = await generateText(ARTICLE_SUMMARY_PROMPT, input);
+        const response = await generateText(ARTICLE_SUMMARY_PROMPT, input, { feature: 'summarise' });
         const parsed = parseLLMResponse(response.text);
 
         if (parsed) {

@@ -75,7 +75,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
 
     // Generate sectioned summary
     const digestInput = buildDailyDigestInput(articles);
-    const llmResponse = await generateText(DAILY_DIGEST_PROMPT, digestInput, { maxTokens: 2048 });
+    const llmResponse = await generateText(DAILY_DIGEST_PROMPT, digestInput, { maxTokens: 2048, feature: 'digest' });
     const summaryText = llmResponse.text;
 
     // Insert digest first (with pending audio status)
@@ -99,7 +99,7 @@ export async function generateDailyDigest(): Promise<DigestResult> {
     try {
         // Generate conversational podcast script for TTS (separate from written digest)
         const audioScriptInput = buildAudioScriptInput(summaryText);
-        const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048 });
+        const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048, feature: 'digest' });
         const audioScript = audioScriptResponse.text;
 
         // Use audioScript (not summaryText) for TTS
@@ -174,7 +174,7 @@ export async function retryDigestAudio(digestId: string): Promise<string | null>
 
     // Generate podcast script for retry too
     const audioScriptInput = buildAudioScriptInput(digest.summary_text);
-    const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048 });
+    const audioScriptResponse = await generateText(AUDIO_SCRIPT_PROMPT, audioScriptInput, { maxTokens: 2048, feature: 'digest' });
     const audioScript = audioScriptResponse.text;
 
     const { audioBuffer, contentType } = await generateSpeech(audioScript);

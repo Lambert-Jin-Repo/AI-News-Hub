@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   const userContent = buildWorkflowSuggestInput(goal, toolList, allowExternal);
 
   try {
-    const result = await generateText(taskPrompt, userContent, { maxTokens: 4096, provider: 'minimax' });
+    const result = await generateText(taskPrompt, userContent, { maxTokens: 4096, provider: 'minimax', feature: 'workflow' });
 
     // Extract JSON from response
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);

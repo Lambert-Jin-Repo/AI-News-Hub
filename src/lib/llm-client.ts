@@ -2,15 +2,20 @@ import OpenAI from 'openai';
 import Groq from 'groq-sdk';
 import { AppError, ErrorCode } from './errors';
 import { logger } from './logger';
+import { logLLMUsage } from './llm-logger';
 
 export interface LLMResponse {
   text: string;
   provider: 'gemini' | 'minimax' | 'groq';
+  latency_ms?: number;
+  tokens_in?: number;
+  tokens_out?: number;
 }
 
 export interface GenerateTextOptions {
   maxTokens?: number;
   provider?: 'default' | 'minimax';
+  feature?: string;
 }
 
 /**
@@ -62,6 +67,7 @@ async function callMiniMax(
     baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
   });
 
+  const startTime = Date.now();
   const completion = await client.chat.completions.create({
     model: modelName,
     messages: [
@@ -71,6 +77,7 @@ async function callMiniMax(
     temperature: 0.3,
     max_tokens: maxTokens,
   });
+  const latency_ms = Date.now() - startTime;
 
   const raw = completion.choices[0]?.message?.content;
   if (!raw) {
@@ -80,7 +87,13 @@ async function callMiniMax(
   // MiniMax M2.5 is a reasoning model — strip <think>...</think> blocks
   const text = stripThinkTags(raw);
 
-  return { text, provider: 'minimax' };
+  return {
+    text,
+    provider: 'minimax',
+    latency_ms,
+    tokens_in: completion.usage?.prompt_tokens,
+    tokens_out: completion.usage?.completion_tokens,
+  };
 }
 
 /**
@@ -101,6 +114,7 @@ async function callGemini(
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
   });
 
+  const startTime = Date.now();
   const completion = await client.chat.completions.create({
     model: modelName,
     messages: [
@@ -110,13 +124,20 @@ async function callGemini(
     temperature: 0.3,
     max_tokens: maxTokens,
   });
+  const latency_ms = Date.now() - startTime;
 
   const text = completion.choices[0]?.message?.content;
   if (!text) {
     throw new AppError('Gemini returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
   }
 
-  return { text, provider: 'gemini' };
+  return {
+    text,
+    provider: 'gemini',
+    latency_ms,
+    tokens_in: completion.usage?.prompt_tokens,
+    tokens_out: completion.usage?.completion_tokens,
+  };
 }
 
 /**
@@ -131,6 +152,7 @@ async function callGroq(
   if (!apiKey) throw new AppError('GROQ_API_KEY is not set', ErrorCode.CONFIG_MISSING);
 
   const groq = new Groq({ apiKey });
+  const startTime = Date.now();
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [
@@ -140,11 +162,18 @@ async function callGroq(
     temperature: 0.3,
     max_tokens: maxTokens,
   });
+  const latency_ms = Date.now() - startTime;
 
   const text = completion.choices[0]?.message?.content;
   if (!text) throw new AppError('Groq returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
 
-  return { text, provider: 'groq' };
+  return {
+    text,
+    provider: 'groq',
+    latency_ms,
+    tokens_in: completion.usage?.prompt_tokens,
+    tokens_out: completion.usage?.completion_tokens,
+  };
 }
 
 /**
@@ -197,13 +226,30 @@ async function generateWithDefaultChain(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
+  feature: string,
 ): Promise<LLMResponse> {
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
   // Try Gemini first
   const gemini = await tryWithRetry(
     () => callGemini(systemPrompt, userPrompt, maxTokens),
     'Gemini',
   );
-  if (gemini.result) return gemini.result;
+  if (gemini.result) {
+    logLLMUsage({
+      provider: 'gemini', model: geminiModel, feature, success: true,
+      latency_ms: gemini.result.latency_ms ?? 0, tokens_in: gemini.result.tokens_in,
+      tokens_out: gemini.result.tokens_out, is_fallback: false,
+    });
+    return gemini.result;
+  }
+
+  // Log Gemini failure
+  logLLMUsage({
+    provider: 'gemini', model: geminiModel, feature, success: false, latency_ms: 0,
+    error_type: gemini.error instanceof Error ? gemini.error.message : String(gemini.error),
+    is_fallback: false,
+  });
 
   // Fallback to Groq
   logger.info('Gemini unavailable, falling back to Groq', {
@@ -211,8 +257,20 @@ async function generateWithDefaultChain(
   });
 
   try {
-    return await callGroq(systemPrompt, userPrompt, maxTokens);
+    const result = await callGroq(systemPrompt, userPrompt, maxTokens);
+    logLLMUsage({
+      provider: 'groq', model: 'llama-3.3-70b-versatile', feature, success: true,
+      latency_ms: result.latency_ms ?? 0, tokens_in: result.tokens_in,
+      tokens_out: result.tokens_out, is_fallback: true,
+    });
+    return result;
   } catch (groqError) {
+    logLLMUsage({
+      provider: 'groq', model: 'llama-3.3-70b-versatile', feature, success: false,
+      latency_ms: 0, error_type: groqError instanceof Error ? groqError.message : String(groqError),
+      is_fallback: true,
+    });
+
     if (isQuotaOrRateError(gemini.error) || isQuotaOrRateError(groqError)) {
       throw new AppError(
         `All providers hit quota/rate limits. Gemini: ${gemini.error instanceof Error ? gemini.error.message : String(gemini.error)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
@@ -236,13 +294,31 @@ async function generateWithMiniMaxChain(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
+  feature: string,
 ): Promise<LLMResponse> {
+  const minimaxModel = process.env.MINIMAX_MODEL || 'MiniMax-M2.5';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
   // Try MiniMax first
   const minimax = await tryWithRetry(
     () => callMiniMax(systemPrompt, userPrompt, maxTokens),
     'MiniMax',
   );
-  if (minimax.result) return minimax.result;
+  if (minimax.result) {
+    logLLMUsage({
+      provider: 'minimax', model: minimaxModel, feature, success: true,
+      latency_ms: minimax.result.latency_ms ?? 0, tokens_in: minimax.result.tokens_in,
+      tokens_out: minimax.result.tokens_out, is_fallback: false,
+    });
+    return minimax.result;
+  }
+
+  // Log MiniMax failure
+  logLLMUsage({
+    provider: 'minimax', model: minimaxModel, feature, success: false, latency_ms: 0,
+    error_type: minimax.error instanceof Error ? minimax.error.message : String(minimax.error),
+    is_fallback: false,
+  });
 
   // Fallback to Gemini
   logger.info('MiniMax unavailable, falling back to Gemini', {
@@ -250,16 +326,40 @@ async function generateWithMiniMaxChain(
   });
 
   try {
-    return await callGemini(systemPrompt, userPrompt, maxTokens);
+    const geminiResult = await callGemini(systemPrompt, userPrompt, maxTokens);
+    logLLMUsage({
+      provider: 'gemini', model: geminiModel, feature, success: true,
+      latency_ms: geminiResult.latency_ms ?? 0, tokens_in: geminiResult.tokens_in,
+      tokens_out: geminiResult.tokens_out, is_fallback: true,
+    });
+    return geminiResult;
   } catch (geminiError) {
+    logLLMUsage({
+      provider: 'gemini', model: geminiModel, feature, success: false, latency_ms: 0,
+      error_type: geminiError instanceof Error ? geminiError.message : String(geminiError),
+      is_fallback: true,
+    });
+
     // Fallback to Groq
     logger.info('Gemini also unavailable, falling back to Groq', {
       reason: geminiError instanceof Error ? geminiError.message : String(geminiError),
     });
 
     try {
-      return await callGroq(systemPrompt, userPrompt, maxTokens);
+      const groqResult = await callGroq(systemPrompt, userPrompt, maxTokens);
+      logLLMUsage({
+        provider: 'groq', model: 'llama-3.3-70b-versatile', feature, success: true,
+        latency_ms: groqResult.latency_ms ?? 0, tokens_in: groqResult.tokens_in,
+        tokens_out: groqResult.tokens_out, is_fallback: true,
+      });
+      return groqResult;
     } catch (groqError) {
+      logLLMUsage({
+        provider: 'groq', model: 'llama-3.3-70b-versatile', feature, success: false,
+        latency_ms: 0, error_type: groqError instanceof Error ? groqError.message : String(groqError),
+        is_fallback: true,
+      });
+
       if (isQuotaOrRateError(minimax.error) || isQuotaOrRateError(geminiError) || isQuotaOrRateError(groqError)) {
         throw new AppError(
           `All providers hit quota/rate limits. MiniMax: ${minimax.error instanceof Error ? minimax.error.message : String(minimax.error)}. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
@@ -294,12 +394,12 @@ export async function generateText(
   userContent: string,
   options: GenerateTextOptions = {},
 ): Promise<LLMResponse> {
-  const { maxTokens = 1024, provider = 'default' } = options;
+  const { maxTokens = 1024, provider = 'default', feature = 'unknown' } = options;
   const systemPrompt = buildSystemPrompt(taskPrompt);
   const wrappedContent = wrapUserContent(userContent);
 
   if (provider === 'minimax') {
-    return generateWithMiniMaxChain(systemPrompt, wrappedContent, maxTokens);
+    return generateWithMiniMaxChain(systemPrompt, wrappedContent, maxTokens, feature);
   }
-  return generateWithDefaultChain(systemPrompt, wrappedContent, maxTokens);
+  return generateWithDefaultChain(systemPrompt, wrappedContent, maxTokens, feature);
 }

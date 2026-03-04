@@ -7,7 +7,7 @@
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
 **Last Updated:** 2026-03-04
-**Status:** Phase 7 — LLM Usage Monitor Dashboard (Planned)
+**Status:** Phase 7 — LLM Usage Monitor Dashboard (Implemented)
 
 ---
 
@@ -676,8 +676,43 @@ curl http://localhost:3000/api/health
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
 
+### 2026-03-04 — Claude Opus — Branch: main (Session 4)
+**Status:** Complete
+**Summary:**
+- Implemented Phase 7: LLM Usage Monitor Dashboard (full implementation from design/plan docs)
+- Migration 012: `llm_usage_logs` + `profiles` tables with indexes, RLS, cleanup function
+- Created `src/lib/llm-logger.ts` — async fire-and-forget logging utility
+- Instrumented `src/lib/llm-client.ts` — timing, tokens, feature tracking, logging in both chains
+- Tagged all 5 callers with feature names (summarise, digest, daily_word, tool_discovery, workflow)
+- Auth: `@supabase/ssr` middleware + server client, admin login page, profiles-based admin check
+- API: `GET /api/admin/llm-usage?range=today|7d|30d` with server-side aggregation
+- Dashboard: Recharts (stacked area, pie, bar, horizontal bar), metric cards, fallback events, recent calls table
+- Auto-refresh 15s polling, range selector (Today/7D/30D)
+- Next.js 16: Used `proxy.ts` (middleware.ts deprecated), split supabase-server.ts from supabase-middleware.ts
+- Tests: 3 new llm-logger tests, all 110 tests passing, build clean
+**Files Created (8):**
+- `supabase/migrations/012_llm_usage_logs.sql`
+- `src/lib/llm-logger.ts`
+- `src/lib/supabase-server.ts`
+- `src/lib/supabase-middleware.ts`
+- `src/proxy.ts`
+- `src/app/admin/login/page.tsx`
+- `src/app/admin/llm-usage/page.tsx`
+- `src/app/admin/llm-usage/components.tsx`
+- `src/app/api/admin/llm-usage/route.ts`
+- `src/lib/__tests__/llm-logger.test.ts`
+**Files Modified (6):**
+- `src/lib/llm-client.ts` — LLMResponse + GenerateTextOptions interfaces, timing/tokens, logging
+- `src/lib/summariser.ts` — feature: 'summarise'
+- `src/lib/digest-generator.ts` — feature: 'digest'
+- `src/lib/daily-word-generator.ts` — feature: 'daily_word'
+- `src/lib/tool-discovery.ts` — feature: 'tool_discovery'
+- `src/app/api/workflows/suggest/route.ts` — feature: 'workflow'
+**Issues:** Supabase MCP tool couldn't apply migration (project not in authenticated account). Migration file written for manual application.
+**Next:** Run migration 012 in Supabase SQL Editor. Insert admin profile row. Deploy to Cloud Run.
+
 ### 2026-03-04 — Claude Opus — Branch: main (Session 3)
-**Status:** Planning
+**Status:** Complete
 **Summary:**
 - Designed LLM Usage Monitor Dashboard (Phase 7)
 - Architecture: `llm_usage_logs` table in Supabase, async fire-and-forget logging in `generateText()`, admin dashboard at `/admin/llm-usage`

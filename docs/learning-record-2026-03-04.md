@@ -3,6 +3,7 @@
 > Session 1: MiniMax API endpoint migration (Global → China), Cloud Run deployment fix, and workflow generation reliability improvement.
 > Session 2: Split LLM providers — Gemini 2.5 Flash as default, MiniMax M2.5 reserved for workflow suggest only.
 > Session 3: Designed LLM Usage Monitor Dashboard — Supabase-backed logging, Recharts dashboard, admin auth.
+> Session 4: Implemented Phase 7 — LLM Usage Monitor Dashboard (full stack: migration, logging, instrumentation, auth, API, Recharts dashboard).
 
 ---
 
@@ -180,3 +181,69 @@ baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
 3. **profiles table is the standard Supabase auth pattern**: Rather than using user metadata, a `profiles` table with `is_admin` is queryable, indexable, and works with RLS policies.
 
 4. **Middleware can't query Supabase DB directly**: It can only check if a session cookie exists. The actual admin role check must happen in the API route or server component.
+
+---
+
+## Session 4: LLM Usage Monitor Dashboard Implementation
+
+### 📋 What Was Done
+
+| # | Change | Category |
+|---|--------|----------|
+| 1 | Migration 012: `llm_usage_logs` + `profiles` tables | Database |
+| 2 | `src/lib/llm-logger.ts` — async fire-and-forget logging | Feature |
+| 3 | Instrumented `llm-client.ts` — timing, tokens, feature, logging | Feature |
+| 4 | Tagged 5 callers with feature names | Integration |
+| 5 | `@supabase/ssr` middleware + server client (split files) | Auth |
+| 6 | Admin login page (`/admin/login`) | UI |
+| 7 | Admin API endpoint (`/api/admin/llm-usage`) | API |
+| 8 | Dashboard with 7 Recharts components | UI |
+| 9 | 3 new tests for llm-logger | Testing |
+
+**Scale**: ~800 lines new code across 10 new files + 6 modified files. 110 tests passing.
+
+### 🐛 Issues Encountered & Fixed
+
+#### 1. Next.js 16 `middleware.ts` Deprecated → `proxy.ts`
+
+**Symptom**: Build warning: `The "middleware" file convention is deprecated. Please use "proxy" instead.`
+
+**Fix**: Renamed `src/middleware.ts` to `src/proxy.ts` and changed the export from `middleware` to `proxy`.
+
+#### 2. `next/headers` Import in Shared File Breaks Middleware + Client
+
+**Symptom**: Build error — `next/headers` can't be used in Edge Middleware or Client Components.
+
+**Root cause**: `supabase-server.ts` exported helpers for middleware, server routes, AND browser clients — all in one file. Since middleware runs in Edge Runtime and client components run in the browser, neither can import `next/headers`.
+
+**Fix**: Split into 3 separate files:
+- `supabase-middleware.ts` — for proxy/middleware (no `next/headers`)
+- `supabase-server.ts` — for server route handlers (uses `next/headers`)
+- Login page uses `@supabase/supabase-js` `createClient` directly (browser)
+
+#### 3. Vitest `vi.mock` Hoisting Issue
+
+**Symptom**: `ReferenceError: Cannot access 'mockFrom' before initialization` in test.
+
+**Root cause**: `vi.mock()` factory is hoisted to the top of the file, so it runs before `const mockFrom = vi.fn()`. Variables declared with `const` aren't accessible before initialization.
+
+**Fix**: Used `vi.hoisted()` to declare mocks in the hoisted scope:
+```typescript
+const { mockInsert, mockFrom } = vi.hoisted(() => {
+  const mockInsert = vi.fn();
+  const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+  return { mockInsert, mockFrom };
+});
+```
+
+### 🔑 Key Takeaways (Session 4)
+
+1. **Next.js 16 renames `middleware.ts` to `proxy.ts`**: The `middleware` export is deprecated. Use `proxy` export in `src/proxy.ts`. The matcher config is the same.
+
+2. **Separate server-only imports from shared files**: Files that import `next/headers` can't be used in middleware (Edge Runtime) or client components. Split helpers into separate files by runtime context.
+
+3. **`vi.hoisted()` solves mock initialization order**: When `vi.mock` factory needs to reference mock objects, declare them inside `vi.hoisted()` which runs in the hoisted scope before the factory.
+
+4. **Supabase MCP tool is account-scoped**: The MCP plugin only accesses projects under the authenticated account. Projects in other accounts need manual migration application.
+
+5. **Server-side aggregation is cleaner than client-side**: Fetching all logs and computing stats in the API route (GROUP BY equivalent in JS) keeps the response payload small and the client simple.
