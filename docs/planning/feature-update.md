@@ -1,8 +1,8 @@
-# Feature Update — MiniMax M2.5 Migration & AI Automation
+# Feature Update — Split LLM Providers & AI Automation
 
 > **Date:** 2026-02-25 (updated 2026-03-04)
-> **Status:** Phase 1 Complete
-> **Goal:** Migrate LLM from Gemini to MiniMax M2.5 (Coding Plan), keep Google Cloud TTS, and add AI-powered automation features.
+> **Status:** Phase 1 Complete (Updated: split provider architecture)
+> **Goal:** Use Gemini 2.5 Flash as default LLM, MiniMax M2.5 for workflow generation only, keep Google Cloud TTS, and add AI-powered automation features.
 
 ---
 
@@ -10,29 +10,32 @@
 
 | Function | Provider | Cost | Reason |
 |----------|----------|------|--------|
-| Article summarization | MiniMax M2.5 | Free (Coding Plan) | Unlimited tokens, resets every 5hr |
-| Tool/workflow recommendations | MiniMax M2.5 | Free (Coding Plan) | Best-in-class function calling (76.8% BFCL) |
-| Content enrichment & automation | MiniMax M2.5 | Free (Coding Plan) | Unlimited calls enable aggressive automation |
+| Article summarization | Gemini 2.5 Flash | Free (250 RPD) | Default for most tasks, fast, reliable |
+| Daily digest & audio | Gemini 2.5 Flash | Free (250 RPD) | Handles summarisation well |
+| Tool discovery & daily word | Gemini 2.5 Flash | Free (250 RPD) | General-purpose tasks |
+| Workflow generation | MiniMax M2.5 | Free (Coding Plan) | Best function-calling (76.8% BFCL) |
 | Audio digest (TTS) | Google Cloud TTS | Free (4M chars/mo) | Only using ~66K chars/mo, well within free tier |
-| LLM fallback | Groq (Llama 3.3) | Free | Redundancy if MiniMax is unavailable |
+| LLM fallback (all chains) | Groq (Llama 3.3) | Free | Last-resort redundancy |
 
 ---
 
 ## Fallback & Backup Plan
 
-> **Principle:** If MiniMax API is unavailable, the site continues to function normally. All AI-enhanced features degrade gracefully — no feature should break the core experience.
+> **Principle:** If any LLM provider is unavailable, the site continues to function normally. All AI-enhanced features degrade gracefully — no feature should break the core experience.
 
-### Tier 1: Automatic LLM Fallback
+### Tier 1: Automatic LLM Fallback (Dual Chain)
 
 ```
-MiniMax M2.5 (primary) → Groq Llama 3.3 (fallback) → Skip & Queue (last resort)
+Default chain (most tasks):  Gemini 2.5 Flash (retry 1x) → Groq → fail
+MiniMax chain (workflow):    MiniMax M2.5 (retry 1x) → Gemini 2.5 Flash → Groq → error
 ```
 
 | Scenario | Automatic Action |
 |----------|-----------------|
-| MiniMax API timeout/error | Retry once → fall back to Groq |
-| MiniMax + Groq both down | Queue articles as `pending`, retry next CRON cycle |
-| MiniMax quota exceeded (unlikely on Coding Plan) | Route to Groq for remainder of window |
+| Gemini API timeout/error | Retry once → fall back to Groq |
+| MiniMax API timeout/error (workflow) | Retry once → fall back to Gemini → then Groq |
+| All providers down | Queue articles as `pending`, retry next CRON cycle |
+| Gemini quota exceeded (250 RPD) | Route to Groq automatically |
 | Network outage | All jobs fail gracefully, log errors, retry next cycle |
 
 ### Tier 2: Feature Degradation
@@ -53,37 +56,47 @@ If LLM is unavailable for an extended period, features degrade but the site rema
 
 ### Tier 3: Full Rollback
 
-If MiniMax is permanently discontinued, rollback to Gemini-based architecture:
+If MiniMax is permanently discontinued:
+1. Remove `provider: 'minimax'` from workflow suggest route — it automatically uses the default (Gemini) chain
+2. All prompts in `prompts.ts` are provider-agnostic — no changes needed
+3. New AI features (recommendations, trends) can use any OpenAI-compatible provider
 
-1. Swap `callMiniMax()` → `callGemini()` in `llm-client.ts` (single function change)
-2. Re-enable Gemini usage tracking in `llm-usage.ts`
-3. All prompts in `prompts.ts` are provider-agnostic — no changes needed
-4. New AI features (recommendations, trends) can use any OpenAI-compatible provider
+If Gemini is permanently discontinued:
+1. Set all callers to `provider: 'minimax'` or add a new default provider to `llm-client.ts`
+2. The architecture supports any OpenAI-compatible provider
 
-**Rollback time: ~30 minutes** — the architecture is provider-agnostic by design.
+**Rollback time: ~10 minutes** — the architecture is provider-agnostic by design with dual chains.
 
 ---
 
-## Phase 1: Core Migration
+## Phase 1: Core Migration → Split Provider Architecture
 
 > **Priority:** 🔴 Urgent — Gemini 2.0 Flash sunsets March 31, 2026
+> **Updated 2026-03-04:** Split providers — Gemini 2.5 Flash default, MiniMax for workflow only
 
 ### Changes
 
 | File | Change | Status |
 |------|--------|--------|
-| `src/lib/llm-client.ts` | Replace `callGemini()` with `callMiniMax()` using OpenAI-compatible API | ✅ Done |
+| `src/lib/llm-client.ts` | Added `callGemini()` via OpenAI-compatible endpoint | ✅ Done (2026-03-04) |
+| `src/lib/llm-client.ts` | Dual chain: `generateWithDefaultChain()` (Gemini→Groq) + `generateWithMiniMaxChain()` (MiniMax→Gemini→Groq) | ✅ Done (2026-03-04) |
+| `src/lib/llm-client.ts` | `generateText()` dispatcher with `provider` option (`'default'` or `'minimax'`) | ✅ Done (2026-03-04) |
 | `src/lib/llm-client.ts` | Configurable `baseURL` via `MINIMAX_BASE_URL` (China default) | ✅ Done (2026-03-04) |
-| `src/lib/llm-usage.ts` | Simplify — remove Gemini RPD tracking, add basic MiniMax health check | ✅ Done |
-| `.env.example` / `.env.local` | Add `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, keep `GEMINI_API_KEY` as optional | ✅ Done |
-| `.github/workflows/deploy.yml` | Add MiniMax env vars to Cloud Run deployment | ✅ Done (2026-03-04) |
-| `src/app/api/workflows/suggest/route.ts` | Increase `maxTokens` to 4096 for reasoning model | ✅ Done (2026-03-04) |
+| `src/lib/llm-usage.ts` | Default provider → `gemini`, added `isGeminiConfigured()`, widened types | ✅ Done (2026-03-04) |
+| `src/app/api/workflows/suggest/route.ts` | `maxTokens: 4096`, `provider: 'minimax'`, rate limit 10→3 | ✅ Done (2026-03-04) |
+| `.env.local` | `GEMINI_MODEL=gemini-2.5-flash` | ✅ Done (2026-03-04) |
+| `.env.example` | Rewritten: Gemini primary, MiniMax workflow-only, Groq fallback | ✅ Done (2026-03-04) |
+| `.github/workflows/deploy.yml` | Added `GEMINI_MODEL=gemini-2.5-flash` to Cloud Run env vars | ✅ Done (2026-03-04) |
+| `src/lib/__tests__/llm-client.test.ts` | Updated for dual chain tests (6 tests) | ✅ Done (2026-03-04) |
 | `src/lib/constants.ts` | Remove `MAX_ARTICLES_PER_DAY` cap (no longer cost-constrained) | ✅ Done |
 
-### No Changes Required
+### No Changes Required (automatic via default provider)
 
-- `src/lib/summariser.ts` — calls abstracted `generateText()`
-- `src/lib/digest-generator.ts` — calls abstracted `generateText()`
+- `src/lib/summariser.ts` — calls `generateText()` without `provider` → uses Gemini chain
+- `src/lib/digest-generator.ts` — calls `generateText()` without `provider` → uses Gemini chain
+- `src/lib/tool-discovery.ts` — calls `generateText()` without `provider` → uses Gemini chain
+- `src/lib/daily-word-generator.ts` — calls `generateText()` without `provider` → uses Gemini chain
+- `scripts/seed-workflows.ts` — calls `generateText()` without `provider` → uses Gemini chain
 - `src/lib/prompts.ts` — provider-agnostic prompts
 - `src/lib/tts-client.ts` — stays on Google Cloud TTS
 - All components — UI layer is fully decoupled
@@ -233,7 +246,11 @@ M2.5 reviews articles approaching archive date → keeps important ones (foundat
 ## Environment Variables
 
 ```env
-# MiniMax (primary LLM)
+# Gemini (default LLM for most tasks)
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+
+# MiniMax (workflow suggest only)
 MINIMAX_API_KEY=your-minimax-api-key
 MINIMAX_BASE_URL=https://api.minimaxi.com/v1   # China (default) or https://api.minimax.io/v1 (Global)
 MINIMAX_MODEL=MiniMax-M2.5
@@ -241,11 +258,8 @@ MINIMAX_MODEL=MiniMax-M2.5
 # Google Cloud TTS (free tier audio)
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 
-# Groq (LLM fallback)
+# Groq (fallback for all chains)
 GROQ_API_KEY=your-groq-api-key
-
-# OPTIONAL — Gemini (additional fallback, can remove after migration)
-GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ---

@@ -624,15 +624,17 @@ curl http://localhost:3000/api/health
 - "Used in Workflows" section on individual tool detail pages
 
 **New Feature: AI Workflow Suggestion**
-- "Suggest" tab in WorkflowShowcase — users describe a goal, Gemini generates a 3-5 step pipeline
-- `POST /api/workflows/suggest` endpoint with rate limiting (10 req/min per IP)
+- "Suggest" tab in WorkflowShowcase — users describe a goal, MiniMax M2.5 generates a 3-5 step pipeline
+- `POST /api/workflows/suggest` endpoint with rate limiting (3 req/min per IP)
+- Uses MiniMax chain explicitly (`provider: 'minimax'`) for best function-calling
 - In-memory tool cache (refreshed every 10 min) for fast prompt building
 - Validates all suggested tool slugs against the database
 
-**New Feature: Gemini Usage Monitor**
-- `src/lib/llm-usage.ts` — in-memory daily call counter (limit: 230, auto-reset at midnight UTC)
-- Integrated into `llm-client.ts` — proactively routes to Groq when nearing Gemini's 250 RPD limit
-- Warns at 80% usage, skips Gemini entirely at 230 calls
+**LLM Provider Architecture (Updated 2026-03-04)**
+- `src/lib/llm-usage.ts` — provider health tracking with Gemini as default active provider
+- Dual chain routing in `llm-client.ts`:
+  - Default chain (summarise, digest, audio, daily word, tool discovery): Gemini 2.5 Flash → Groq
+  - MiniMax chain (workflow suggest only): MiniMax M2.5 → Gemini → Groq
 - `GET /api/admin/usage` — usage stats endpoint (protected by CRON_SECRET)
 
 ### Files Created (12)
@@ -672,6 +674,32 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-03-04 — Claude Opus — Branch: main (Session 2)
+**Status:** Complete
+**Summary:**
+- Split LLM providers: Gemini 2.5 Flash as default, MiniMax M2.5 reserved for workflow suggest only
+- Default chain: Gemini (retry 1x) → Groq → fail
+- MiniMax chain: MiniMax (retry 1x) → Gemini → Groq → error
+- Added `callGemini()` function using OpenAI-compatible endpoint
+- Refactored `generateText()` into `tryWithRetry()`, `generateWithDefaultChain()`, `generateWithMiniMaxChain()` with thin dispatcher
+- Reduced workflow suggest rate limit from 10 → 3 per IP/minute
+- Updated `llm-usage.ts`: default provider now `gemini`, added `isGeminiConfigured()`
+- Updated `.env.local`: `GEMINI_MODEL=gemini-2.5-flash`
+- Updated `.env.example`: Gemini as primary, MiniMax as workflow-only, Groq as fallback
+- Added `GEMINI_MODEL=gemini-2.5-flash` to Cloud Run deploy.yml
+- Updated all LLM tests (6 tests covering both chains)
+- All 107 tests passing
+**Files Changed (7):**
+- `src/lib/llm-client.ts` — dual chain architecture
+- `src/app/api/workflows/suggest/route.ts` — rate limit 3, provider: 'minimax'
+- `src/lib/llm-usage.ts` — gemini tracking
+- `.env.local` — gemini-2.5-flash
+- `.env.example` — rewritten LLM section
+- `.github/workflows/deploy.yml` — GEMINI_MODEL env var
+- `src/lib/__tests__/llm-client.test.ts` — updated for dual chains
+**Issues:** None.
+**Next:** Deploy to Cloud Run and verify both chains in production.
 
 ### 2026-03-04 — Claude Opus — Branch: main
 **Status:** Complete
@@ -910,11 +938,12 @@ npm test  # Verify tests still pass
 | `SUPABASE_ANON_KEY` | Supabase anonymous key | Client SDK |
 | `SUPABASE_SERVICE_KEY` | Supabase service role key | Server-side |
 | `CRON_SECRET` | Shared secret for job endpoints | Job triggers |
-| `MINIMAX_API_KEY` | MiniMax API key (primary LLM) | LLM summaries, workflows |
+| `GEMINI_API_KEY` | Google Gemini API key (default LLM) | Summarise, digest, audio, daily word, tool discovery |
+| `GEMINI_MODEL` | Gemini model name (default: `gemini-2.5-flash`) | LLM client |
+| `MINIMAX_API_KEY` | MiniMax API key (workflow suggest only) | Workflow generation |
 | `MINIMAX_BASE_URL` | MiniMax API base URL (default: China) | LLM client |
 | `MINIMAX_MODEL` | MiniMax model name (default: `MiniMax-M2.5`) | LLM client |
-| `GEMINI_API_KEY` | Google Gemini API key | Optional/legacy |
-| `GROQ_API_KEY` | Groq API key (fallback) | LLM fallback |
+| `GROQ_API_KEY` | Groq API key (fallback for all chains) | LLM fallback |
 
 ---
 

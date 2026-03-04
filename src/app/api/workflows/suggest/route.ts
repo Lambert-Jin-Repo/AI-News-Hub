@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 
 // In-memory rate limiter: max 10 requests/minute per IP
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
+const RATE_LIMIT = 3;
 const RATE_WINDOW_MS = 60_000;
 
 function isRateLimited(ip: string): boolean {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   const userContent = buildWorkflowSuggestInput(goal, toolList, allowExternal);
 
   try {
-    const result = await generateText(taskPrompt, userContent, { maxTokens: 4096 });
+    const result = await generateText(taskPrompt, userContent, { maxTokens: 4096, provider: 'minimax' });
 
     // Extract JSON from response
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);

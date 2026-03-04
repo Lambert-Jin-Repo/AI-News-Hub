@@ -1,10 +1,13 @@
 # Learning Record — 4 Mar 2026
 
-> MiniMax API endpoint migration (Global → China), Cloud Run deployment fix, and workflow generation reliability improvement.
+> Session 1: MiniMax API endpoint migration (Global → China), Cloud Run deployment fix, and workflow generation reliability improvement.
+> Session 2: Split LLM providers — Gemini 2.5 Flash as default, MiniMax M2.5 reserved for workflow suggest only.
 
 ---
 
-## 📋 What Was Done (4 commits)
+## 📋 What Was Done
+
+### Session 1 (4 commits)
 
 | # | Commit | Category |
 |---|--------|----------|
@@ -14,6 +17,18 @@
 | 4 | `fix: increase workflow suggest max_tokens to 4096` | Reliability |
 
 **Scale**: ~15 lines changed across 5 files + 1 file deleted.
+
+### Session 2 (pending commit)
+
+| # | Change | Category |
+|---|--------|----------|
+| 1 | Split LLM into dual chain architecture | Architecture |
+| 2 | Add `callGemini()` via OpenAI-compatible endpoint | Feature |
+| 3 | Reduce workflow suggest rate limit 10→3 | Security |
+| 4 | Update env files and deployment config | CI/CD |
+| 5 | Update tests for dual chain coverage | Testing |
+
+**Scale**: ~200 lines changed across 7 files.
 
 ---
 
@@ -102,3 +117,31 @@ baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1',
 4. **Test both endpoints when debugging auth issues**: A simple `curl` test to each endpoint immediately revealed which one accepted the key — faster than reading docs or guessing.
 
 5. **Intermittent failures often indicate resource limits**: When something works "sometimes", look for variable resource consumption (tokens, memory, timeouts) rather than logic bugs.
+
+---
+
+## Session 2: Split LLM Providers
+
+### 🏗️ Architecture Decision — Why Split?
+
+**Problem**: All LLM calls were routing through MiniMax M2.5 → Groq. MiniMax is excellent for function-calling (workflow generation) but overkill for simple summarisation tasks. Gemini 2.5 Flash offers free tier (250 RPD) and is well-suited for most tasks.
+
+**Solution**: Dual chain architecture:
+- **Default chain** (summarise, digest, audio, daily word, tool discovery): Gemini 2.5 Flash (retry 1x) → Groq
+- **MiniMax chain** (workflow suggest only): MiniMax M2.5 (retry 1x) → Gemini → Groq
+
+**Implementation**:
+- Added `provider?: 'default' | 'minimax'` option to `GenerateTextOptions`
+- `generateText()` dispatches to the appropriate chain based on `options.provider`
+- `tryWithRetry()` helper extracts shared retry-once logic (DRY)
+- `callGemini()` uses Gemini's OpenAI-compatible endpoint — reuses existing `openai` package, no new dependency
+
+### 🔑 Key Takeaways (Session 2)
+
+1. **Gemini has an OpenAI-compatible endpoint**: `https://generativelanguage.googleapis.com/v1beta/openai/` — uses `GEMINI_API_KEY` as the API key, works with the `openai` SDK directly.
+
+2. **Provider-agnostic design pays off**: Because all callers use `generateText()`, switching the default from MiniMax to Gemini required zero changes to summariser, digest generator, tool discovery, or daily word generator.
+
+3. **Rate limiting should match provider cost**: Workflow suggest uses the more expensive MiniMax provider, so rate limit was tightened from 10 → 3 per IP/minute.
+
+4. **Test mocks can differentiate providers by baseURL**: The mock `OpenAI` constructor checks `opts.baseURL` to return different responses for Gemini vs MiniMax, enabling chain-specific test assertions.

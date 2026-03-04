@@ -5,11 +5,12 @@ import { logger } from './logger';
 
 export interface LLMResponse {
   text: string;
-  provider: 'minimax' | 'groq';
+  provider: 'gemini' | 'minimax' | 'groq';
 }
 
 export interface GenerateTextOptions {
   maxTokens?: number;
+  provider?: 'default' | 'minimax';
 }
 
 /**
@@ -83,6 +84,42 @@ async function callMiniMax(
 }
 
 /**
+ * Attempt generation with Gemini via OpenAI-compatible API.
+ */
+async function callGemini(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<LLMResponse> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new AppError('GEMINI_API_KEY is not set', ErrorCode.CONFIG_MISSING);
+
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+  const client = new OpenAI({
+    apiKey,
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  });
+
+  const completion = await client.chat.completions.create({
+    model: modelName,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.3,
+    max_tokens: maxTokens,
+  });
+
+  const text = completion.choices[0]?.message?.content;
+  if (!text) {
+    throw new AppError('Gemini returned empty response', ErrorCode.LLM_EMPTY_RESPONSE, { isRetryable: true });
+  }
+
+  return { text, provider: 'gemini' };
+}
+
+/**
  * Attempt generation with Groq (fallback).
  */
 async function callGroq(
@@ -119,14 +156,136 @@ function isQuotaOrRateError(error: unknown): boolean {
 }
 
 /**
- * Generate text using MiniMax M2.5 as primary, falling back to Groq.
+ * Try a provider with one retry on transient errors.
+ * Safety blocks propagate immediately. CONFIG_MISSING skips retry.
+ */
+async function tryWithRetry(
+  callFn: () => Promise<LLMResponse>,
+  providerName: string,
+): Promise<{ result?: LLMResponse; error: unknown }> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await callFn();
+      return { result, error: null };
+    } catch (error) {
+      lastError = error;
+
+      if (AppError.isSafetyBlock(error)) {
+        throw error;
+      }
+
+      if (error instanceof AppError && error.code === ErrorCode.CONFIG_MISSING) {
+        break;
+      }
+
+      if (attempt === 0) {
+        logger.warn(`${providerName} attempt failed, retrying once`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        continue;
+      }
+    }
+  }
+  return { error: lastError };
+}
+
+/**
+ * Default chain: Gemini (retry 1x) → Groq → fail
+ */
+async function generateWithDefaultChain(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<LLMResponse> {
+  // Try Gemini first
+  const gemini = await tryWithRetry(
+    () => callGemini(systemPrompt, userPrompt, maxTokens),
+    'Gemini',
+  );
+  if (gemini.result) return gemini.result;
+
+  // Fallback to Groq
+  logger.info('Gemini unavailable, falling back to Groq', {
+    reason: gemini.error instanceof Error ? gemini.error.message : String(gemini.error),
+  });
+
+  try {
+    return await callGroq(systemPrompt, userPrompt, maxTokens);
+  } catch (groqError) {
+    if (isQuotaOrRateError(gemini.error) || isQuotaOrRateError(groqError)) {
+      throw new AppError(
+        `All providers hit quota/rate limits. Gemini: ${gemini.error instanceof Error ? gemini.error.message : String(gemini.error)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+        ErrorCode.QUOTA_EXCEEDED,
+        { isRetryable: true },
+      );
+    }
+
+    throw new AppError(
+      `All providers failed. Gemini: ${gemini.error instanceof Error ? gemini.error.message : String(gemini.error)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+      ErrorCode.LLM_BOTH_FAILED,
+      { isRetryable: true },
+    );
+  }
+}
+
+/**
+ * MiniMax chain: MiniMax (retry 1x) → Gemini → Groq → error
+ */
+async function generateWithMiniMaxChain(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<LLMResponse> {
+  // Try MiniMax first
+  const minimax = await tryWithRetry(
+    () => callMiniMax(systemPrompt, userPrompt, maxTokens),
+    'MiniMax',
+  );
+  if (minimax.result) return minimax.result;
+
+  // Fallback to Gemini
+  logger.info('MiniMax unavailable, falling back to Gemini', {
+    reason: minimax.error instanceof Error ? minimax.error.message : String(minimax.error),
+  });
+
+  try {
+    return await callGemini(systemPrompt, userPrompt, maxTokens);
+  } catch (geminiError) {
+    // Fallback to Groq
+    logger.info('Gemini also unavailable, falling back to Groq', {
+      reason: geminiError instanceof Error ? geminiError.message : String(geminiError),
+    });
+
+    try {
+      return await callGroq(systemPrompt, userPrompt, maxTokens);
+    } catch (groqError) {
+      if (isQuotaOrRateError(minimax.error) || isQuotaOrRateError(geminiError) || isQuotaOrRateError(groqError)) {
+        throw new AppError(
+          `All providers hit quota/rate limits. MiniMax: ${minimax.error instanceof Error ? minimax.error.message : String(minimax.error)}. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+          ErrorCode.QUOTA_EXCEEDED,
+          { isRetryable: true },
+        );
+      }
+
+      throw new AppError(
+        `All providers failed. MiniMax: ${minimax.error instanceof Error ? minimax.error.message : String(minimax.error)}. Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
+        ErrorCode.LLM_BOTH_FAILED,
+        { isRetryable: true },
+      );
+    }
+  }
+}
+
+/**
+ * Generate text using the appropriate provider chain.
  *
- * Retry logic: MiniMax is retried once on transient errors before
- * falling back to Groq. Safety blocks are propagated immediately.
+ * - Default chain (provider omitted or 'default'): Gemini → Groq
+ * - MiniMax chain (provider: 'minimax'): MiniMax → Gemini → Groq
  *
  * @param taskPrompt - The instruction describing what the model should do
  * @param userContent - The untrusted content to process (will be wrapped)
- * @param options - Optional configuration (e.g. maxTokens)
+ * @param options - Optional configuration (e.g. maxTokens, provider)
  * @returns LLMResponse with text and provider used
  * @throws AppError with typed error code
  */
@@ -135,58 +294,12 @@ export async function generateText(
   userContent: string,
   options: GenerateTextOptions = {},
 ): Promise<LLMResponse> {
-  const { maxTokens = 1024 } = options;
+  const { maxTokens = 1024, provider = 'default' } = options;
   const systemPrompt = buildSystemPrompt(taskPrompt);
   const wrappedContent = wrapUserContent(userContent);
 
-  // Try MiniMax first (with one retry on transient errors)
-  let miniMaxError: unknown = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const result = await callMiniMax(systemPrompt, wrappedContent, maxTokens);
-      return result;
-    } catch (error) {
-      miniMaxError = error;
-
-      // Safety blocks propagate immediately — no retry or fallback
-      if (AppError.isSafetyBlock(error)) {
-        throw error;
-      }
-
-      // CONFIG_MISSING means no API key — skip retry, go straight to fallback
-      if (error instanceof AppError && error.code === ErrorCode.CONFIG_MISSING) {
-        break;
-      }
-
-      // On first attempt, log and retry
-      if (attempt === 0) {
-        logger.warn('MiniMax attempt failed, retrying once', { error: error instanceof Error ? error.message : String(error) });
-        continue;
-      }
-    }
+  if (provider === 'minimax') {
+    return generateWithMiniMaxChain(systemPrompt, wrappedContent, maxTokens);
   }
-
-  // Fallback to Groq
-  logger.info('MiniMax unavailable, falling back to Groq', {
-    reason: miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError),
-  });
-
-  try {
-    return await callGroq(systemPrompt, wrappedContent, maxTokens);
-  } catch (groqError) {
-    // If either was a quota/rate error, surface that code
-    if (isQuotaOrRateError(miniMaxError) || isQuotaOrRateError(groqError)) {
-      throw new AppError(
-        `Both providers hit quota/rate limits. MiniMax: ${miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
-        ErrorCode.QUOTA_EXCEEDED,
-        { isRetryable: true },
-      );
-    }
-
-    throw new AppError(
-      `Both providers failed. MiniMax: ${miniMaxError instanceof Error ? miniMaxError.message : String(miniMaxError)}. Groq: ${groqError instanceof Error ? groqError.message : String(groqError)}`,
-      ErrorCode.LLM_BOTH_FAILED,
-      { isRetryable: true },
-    );
-  }
+  return generateWithDefaultChain(systemPrompt, wrappedContent, maxTokens);
 }

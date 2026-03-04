@@ -9,13 +9,19 @@
 import { logger } from './logger';
 
 /** Which LLM provider is currently active. */
-let activeProvider: 'minimax' | 'groq' = 'minimax';
+let activeProvider: 'gemini' | 'minimax' | 'groq' = 'gemini';
 let lastHealthCheck: string | null = null;
 let consecutiveFailures = 0;
 
 /**
+ * Check Gemini API connectivity by verifying the API key is set.
+ */
+export function isGeminiConfigured(): boolean {
+  return !!process.env.GEMINI_API_KEY;
+}
+
+/**
  * Check MiniMax API connectivity by verifying the API key is set.
- * Returns true if MiniMax is configured and available.
  */
 export function isMiniMaxConfigured(): boolean {
   return !!process.env.MINIMAX_API_KEY;
@@ -24,7 +30,7 @@ export function isMiniMaxConfigured(): boolean {
 /**
  * Record a successful call to update provider status.
  */
-export function recordSuccess(provider: 'minimax' | 'groq'): void {
+export function recordSuccess(provider: 'gemini' | 'minimax' | 'groq'): void {
   activeProvider = provider;
   lastHealthCheck = new Date().toISOString();
   if (provider === 'minimax') {
@@ -49,6 +55,7 @@ export function recordFailure(): void {
 export function getUsageStats() {
   return {
     activeProvider,
+    geminiConfigured: isGeminiConfigured(),
     miniMaxConfigured: isMiniMaxConfigured(),
     consecutiveFailures,
     lastHealthCheck: lastHealthCheck || 'none',
