@@ -1,42 +1,37 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Check, Copy, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Check, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export interface AdvisorTool {
-    name: string;
-    slug: string | null;
+export interface AdvisorAgent {
     role: string;
-    isExternal: boolean;
-    url: string | null;
+    tool: string;
+    slug: string | null;
+    brief: string;
 }
 
-export interface AdvisorStep {
-    order: number;
-    title: string;
-    description: string;
-    toolName: string | null;
-}
-
-export interface AdvisorPromptTemplate {
-    label: string;
-    prompt: string;
+export interface AdvisorScaffoldStep {
+    phase: string;
+    action: string;
+    tool: string;
+    output: string;
 }
 
 export interface AdvisorData {
     title: string;
     emoji: string;
     description: string;
-    tools: AdvisorTool[];
-    steps: AdvisorStep[];
-    tips: string[];
-    promptTemplates: AdvisorPromptTemplate[];
-    pitfalls: string[];
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    agentTeam: AdvisorAgent[];
+    scaffold: AdvisorScaffoldStep[];
+    starterPrompt: string;
+    keywords: string[];
+    levelUp: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +106,29 @@ function CollapsibleSection({
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const DIFFICULTY_CONFIG = {
+    beginner: { label: "Beginner", className: "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/15 dark:text-green-400 dark:border-green-500/30" },
+    intermediate: { label: "Intermediate", className: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-400 dark:border-yellow-500/30" },
+    advanced: { label: "Advanced", className: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30" },
+} as const;
+
+function highlightPlaceholders(text: string): React.ReactNode[] {
+    const parts = text.split(/(\[.+?\])/g);
+    return parts.map((part, i) =>
+        /^\[.+\]$/.test(part) ? (
+            <span key={i} className="font-bold text-primary">
+                {part}
+            </span>
+        ) : (
+            <span key={i}>{part}</span>
+        )
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
@@ -120,6 +138,8 @@ interface AdvisorResultProps {
 }
 
 export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
+    const difficulty = DIFFICULTY_CONFIG[data.difficulty] || DIFFICULTY_CONFIG.beginner;
+
     return (
         <div className="animate-in fade-in duration-500 space-y-0">
             {/* Header */}
@@ -127,26 +147,29 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                 <h3 className="text-xl font-bold text-[var(--foreground)] flex items-center gap-2">
                     <span className="text-2xl">{data.emoji}</span>
                     {data.title}
+                    <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider", difficulty.className)}>
+                        {difficulty.label}
+                    </span>
                 </h3>
                 <p className="text-sm text-[var(--muted-foreground)] mt-1">
                     {data.description}
                 </p>
             </div>
 
-            {/* Tools Row */}
-            {data.tools.length > 0 && (
-                <CollapsibleSection title="🛠️ Recommended Tools">
+            {/* Agent Team */}
+            {data.agentTeam.length > 0 && (
+                <CollapsibleSection title="🤖 Agent Team">
                     <div className="flex flex-wrap gap-2">
-                        {data.tools.map((tool, i) => {
-                            const logo = tool.slug ? toolLogos[tool.slug] : null;
+                        {data.agentTeam.map((agent, i) => {
+                            const logo = agent.slug ? toolLogos[agent.slug] : null;
                             const inner = (
                                 <div
                                     className={cn(
                                         "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors",
                                         "bg-[var(--surface)] border border-[var(--border)]",
-                                        tool.isExternal
-                                            ? "hover:border-amber-300 dark:hover:border-amber-600"
-                                            : "hover:border-primary/40"
+                                        agent.slug
+                                            ? "hover:border-primary/40"
+                                            : "hover:border-amber-300 dark:hover:border-amber-600"
                                     )}
                                 >
                                     {/* Icon */}
@@ -155,51 +178,37 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={logo}
-                                                alt={tool.name}
+                                                alt={agent.tool}
                                                 className="w-5 h-5 object-contain"
                                             />
                                         ) : (
                                             <span className="text-xs font-bold text-[var(--muted-foreground)]">
-                                                {tool.name.charAt(0)}
+                                                {agent.tool.charAt(0)}
                                             </span>
                                         )}
                                     </div>
                                     {/* Info */}
                                     <div className="min-w-0">
-                                        <div className="flex items-center gap-1">
-                                            <span className="font-medium text-[var(--foreground)] truncate">
-                                                {tool.name}
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase tracking-wider">
+                                                {agent.role}
                                             </span>
-                                            {tool.isExternal && (
-                                                <ExternalLink className="w-3 h-3 text-amber-500 shrink-0" />
-                                            )}
+                                            <span className="font-medium text-[var(--foreground)] truncate">
+                                                {agent.tool}
+                                            </span>
                                         </div>
-                                        <span className="text-xs text-[var(--muted-foreground)] truncate block">
-                                            {tool.role}
+                                        <span className="text-xs text-[var(--muted-foreground)] truncate block mt-0.5">
+                                            {agent.brief}
                                         </span>
                                     </div>
                                 </div>
                             );
 
-                            if (tool.isExternal && tool.url) {
+                            if (agent.slug) {
                                 return (
                                     <a
                                         key={i}
-                                        href={tool.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="no-underline"
-                                    >
-                                        {inner}
-                                    </a>
-                                );
-                            }
-
-                            if (tool.slug) {
-                                return (
-                                    <a
-                                        key={i}
-                                        href={`/tools/${tool.slug}`}
+                                        href={`/tools/${agent.slug}`}
                                         className="no-underline"
                                     >
                                         {inner}
@@ -213,85 +222,77 @@ export function AdvisorResult({ data, toolLogos }: AdvisorResultProps) {
                 </CollapsibleSection>
             )}
 
-            {/* Steps */}
-            <CollapsibleSection title="📋 Step-by-Step Workflow">
+            {/* Scaffold */}
+            <CollapsibleSection title="🏗️ Scaffold">
                 <div className="space-y-3">
-                    {data.steps.map((step) => (
-                        <div key={step.order} className="flex gap-3">
+                    {data.scaffold.map((step, i) => (
+                        <div key={i} className="flex gap-3">
                             <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                                {step.order}
+                                {i + 1}
                             </div>
-                            <div className="min-w-0 pt-0.5">
-                                <div className="flex items-center gap-2">
+                            <div className="min-w-0 pt-0.5 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-medium text-sm text-[var(--foreground)]">
-                                        {step.title}
+                                        {step.phase}
                                     </span>
-                                    {step.toolName && (
-                                        <span className="text-xs px-1.5 py-0.5 rounded-md bg-[var(--surface)] text-[var(--muted-foreground)]">
-                                            {step.toolName}
+                                    {step.tool && (
+                                        <span className="text-xs px-1.5 py-0.5 rounded-md bg-[var(--surface)] text-[var(--muted-foreground)] border border-[var(--border)]">
+                                            {step.tool}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-xs text-[var(--muted-foreground)] mt-0.5 leading-relaxed">
-                                    {step.description}
+                                    {step.action}
                                 </p>
+                                <span className="inline-block text-xs mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                    → {step.output}
+                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
             </CollapsibleSection>
 
-            {/* Tips */}
-            {data.tips.length > 0 && (
-                <CollapsibleSection title="💡 Pro Tips">
-                    <ul className="space-y-2">
-                        {data.tips.map((tip, i) => (
-                            <li
-                                key={i}
-                                className="text-sm text-[var(--muted-foreground)] leading-relaxed pl-1"
-                            >
-                                {tip}
-                            </li>
-                        ))}
-                    </ul>
-                </CollapsibleSection>
-            )}
+            {/* Starter Prompt */}
+            <CollapsibleSection title="✍️ Starter Prompt">
+                <div className="flex items-start gap-2 bg-[var(--surface)] rounded-xl px-3.5 py-2.5 border border-[var(--border)]">
+                    <p className="text-sm text-[var(--foreground)] leading-relaxed flex-1 font-mono whitespace-pre-wrap">
+                        {highlightPlaceholders(data.starterPrompt)}
+                    </p>
+                    <CopyButton text={data.starterPrompt} />
+                </div>
+            </CollapsibleSection>
 
-            {/* Prompt Templates */}
-            {data.promptTemplates.length > 0 && (
-                <CollapsibleSection title="✍️ Prompt Templates">
-                    <div className="space-y-3">
-                        {data.promptTemplates.map((pt, i) => (
-                            <div key={i}>
-                                <span className="text-xs font-medium text-[var(--muted-foreground)] mb-1 block">
-                                    {pt.label}
-                                </span>
-                                <div className="flex items-start gap-2 bg-[var(--surface)] rounded-xl px-3.5 py-2.5 border border-[var(--border)]">
-                                    <p className="text-sm text-[var(--foreground)] leading-relaxed flex-1 font-mono whitespace-pre-wrap">
-                                        {pt.prompt}
-                                    </p>
-                                    <CopyButton text={pt.prompt} />
-                                </div>
-                            </div>
+            {/* Keywords */}
+            {data.keywords.length > 0 && (
+                <CollapsibleSection title="🔑 Keywords">
+                    <div className="flex flex-wrap gap-2">
+                        {data.keywords.map((kw, i) => (
+                            <a
+                                key={i}
+                                href={`https://www.google.com/search?q=${encodeURIComponent(kw)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs px-3 py-1.5 rounded-full border border-[var(--border)] text-[var(--muted-foreground)] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer no-underline"
+                            >
+                                {kw}
+                            </a>
                         ))}
                     </div>
                 </CollapsibleSection>
             )}
 
-            {/* Pitfalls */}
-            {data.pitfalls.length > 0 && (
-                <CollapsibleSection title="⚠️ Watch Out For" defaultOpen={false}>
-                    <ul className="space-y-2">
-                        {data.pitfalls.map((p, i) => (
-                            <li
-                                key={i}
-                                className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed pl-1"
-                            >
-                                {p}
-                            </li>
-                        ))}
-                    </ul>
-                </CollapsibleSection>
+            {/* Level Up */}
+            {data.levelUp && (
+                <div className="border-t border-[var(--border)] pt-3">
+                    <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/15">
+                        <span className="text-lg shrink-0">🎓</span>
+                        <p className="text-sm text-[var(--foreground)] leading-relaxed">
+                            <span className="font-bold">Level Up: </span>
+                            {data.levelUp}
+                        </p>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -1,7 +1,7 @@
 # Feature Update — Split LLM Providers & AI Automation
 
-> **Date:** 2026-02-25 (updated 2026-03-04)
-> **Status:** Phase 1 Complete (Updated: split provider architecture)
+> **Date:** 2026-02-25 (updated 2026-03-05)
+> **Status:** Phase 1 Complete, Phase 6 Implementation Complete (Workflow Advisor v2)
 > **Goal:** Use Gemini 2.5 Flash as default LLM, MiniMax M2.5 for workflow generation only, keep Google Cloud TTS, and add AI-powered automation features.
 
 ---
@@ -83,7 +83,7 @@ If Gemini is permanently discontinued:
 | `src/lib/llm-client.ts` | `generateText()` dispatcher with `provider` option (`'default'` or `'minimax'`) | ✅ Done (2026-03-04) |
 | `src/lib/llm-client.ts` | Configurable `baseURL` via `MINIMAX_BASE_URL` (China default) | ✅ Done (2026-03-04) |
 | `src/lib/llm-usage.ts` | Default provider → `gemini`, added `isGeminiConfigured()`, widened types | ✅ Done (2026-03-04) |
-| `src/app/api/workflows/suggest/route.ts` | `maxTokens: 4096`, `provider: 'minimax'`, rate limit 10→3 | ✅ Done (2026-03-04) |
+| `src/app/api/workflows/suggest/route.ts` | `provider: 'minimax'`, rate limit 10→3 (Phase 1); `maxTokens: 2048`, quality gates, new schema (Phase 6) | ✅ Done (2026-03-04, updated 2026-03-05) |
 | `.env.local` | `GEMINI_MODEL=gemini-2.5-flash` | ✅ Done (2026-03-04) |
 | `.env.example` | Rewritten: Gemini primary, MiniMax workflow-only, Groq fallback | ✅ Done (2026-03-04) |
 | `.github/workflows/deploy.yml` | Added `GEMINI_MODEL=gemini-2.5-flash` to Cloud Run env vars | ✅ Done (2026-03-04) |
@@ -227,6 +227,53 @@ Weekly scan of tool homepages → M2.5 detects pricing model changes → flags o
 ### 4e. Intelligent Auto-Archive
 
 M2.5 reviews articles approaching archive date → keeps important ones (foundational papers, major releases), aggressively archives low-value content.
+
+---
+
+## Phase 6: Workflow Advisor v2 — Agent Team Blueprint ✅ Implementation Complete
+
+> **Priority:** 🟡 High — improves core user-facing feature quality
+> **Design Doc:** `docs/plans/2026-03-05-workflow-advisor-v2-design.md`
+> **Status:** ✅ Implementation complete (2026-03-05)
+
+### Problem
+
+Current workflow advisor output is often generic — vague steps, mediocre prompt templates, token-heavy with filler (tips + pitfalls). No quality validation before showing to users.
+
+### Solution: Agent Team Blueprint
+
+Reframe AI workflow answers around the **2026 multi-agent team pattern**:
+
+| Current | New | Why |
+|---|---|---|
+| `tools[]` with name/role | `agentTeam[]` with role/tool/brief | Tools as specialist team members |
+| `steps[]` with title/desc | `scaffold[]` with phase/action/**output** | Every step names a concrete deliverable |
+| `promptTemplates[]` (1-3) | `starterPrompt` (1 best, with `[PLACEHOLDERS]`) | Quality over quantity |
+| `tips[]` + `pitfalls[]` | `keywords[]` + `levelUp` | Learning vocabulary + one next step |
+| — | `difficulty` badge | beginner/intermediate/advanced |
+
+### Quality Gates
+
+3-tier validation before showing any result to users:
+
+1. **Schema completeness** — all fields present, correct counts, `[PLACEHOLDER]` in prompt
+2. **Content heuristics** — no duplicate text, goal relevance check, min lengths
+3. **Retry strategy** — retry same provider → fallback provider → honest error
+
+### Token Efficiency
+
+- Output: ~790 → ~432 tokens (**45% reduction**)
+- Input: ~1,173 tokens (0.6% of MiniMax M2.5 context, safe to 500+ tools)
+- 1-shot example added for quality anchoring (+150 input tokens, negligible cost)
+
+### Files Modified
+
+| File | Change | Status |
+|---|---|---|
+| `src/lib/prompts.ts` | New "AI workflow architect" prompt + 1-shot landing page example | ✅ Done |
+| `src/app/api/workflows/suggest/route.ts` | Tier 1-3 quality gates, new response shape, `maxTokens: 2048`, retry chain | ✅ Done |
+| `src/components/workflows/AdvisorResult.tsx` | New types (`AdvisorAgent`, `AdvisorScaffoldStep`, `AdvisorData`) + full UI rebuild | ✅ Done |
+| `src/components/workflows/WorkflowShowcase.tsx` | No changes needed — `AdvisorData` type name unchanged | ✅ N/A |
 
 ---
 

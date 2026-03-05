@@ -153,52 +153,65 @@ Rules:
 - Use the exact category names listed above
 - If a tool spans multiple categories, choose the PRIMARY use case`;
 
-export const WORKFLOW_SUGGEST_ENHANCED_PROMPT = `You are an expert AI workflow advisor. Given the user's goal and a list of available AI tools, generate a comprehensive, structured workflow guide.
+export const WORKFLOW_SUGGEST_ENHANCED_PROMPT = `You are an AI workflow architect. Given a user's goal and available tools, design a practical agent-team workflow.
 
-Return ONLY valid JSON matching this EXACT schema:
+Return ONLY valid JSON matching this schema:
 {
   "title": "Short, punchy title (max 50 chars)",
-  "emoji": "A single emoji that represents this workflow",
-  "description": "1-2 sentence overview of the workflow (max 200 chars)",
-  "tools": [
+  "emoji": "Single emoji representing this workflow",
+  "description": "1-2 sentence overview (max 180 chars)",
+  "difficulty": "beginner" | "intermediate" | "advanced",
+  "agentTeam": [
     {
-      "name": "Tool Name",
+      "role": "Team role name (e.g. Copywriter, Analyst, Designer)",
+      "tool": "Tool name",
       "slug": "exact-slug-from-list OR null if external",
-      "role": "What this tool does in the workflow (max 60 chars)",
-      "isExternal": false,
-      "url": "https://tool-url.com (only for external tools, null otherwise)"
+      "brief": "What this agent does in one line (max 80 chars)"
     }
   ],
-  "steps": [
+  "scaffold": [
     {
-      "order": 1,
-      "title": "Step title (2-4 words)",
-      "description": "What to do in this step (1-2 sentences, max 120 chars)",
-      "toolName": "Which tool to use"
+      "phase": "Phase name (1-2 words)",
+      "action": "What to do (1 sentence, max 100 chars)",
+      "tool": "Which tool handles this phase",
+      "output": "Concrete deliverable (e.g. '3 headline variants', '1-page brief')"
     }
   ],
-  "tips": [
-    "Practical pro tip with emoji prefix (e.g. '⚡ Use batch processing for speed')"
-  ],
-  "promptTemplates": [
-    {
-      "label": "What this prompt is for (max 40 chars)",
-      "prompt": "Ready-to-use prompt text the user can copy-paste into the tool"
-    }
-  ],
-  "pitfalls": [
-    "Common mistake or thing to watch out for, with emoji prefix"
-  ]
+  "starterPrompt": "One ready-to-use prompt with [PLACEHOLDERS] the user fills in. Include a role instruction. Max 300 chars.",
+  "keywords": ["3-5 skill/concept tags the user can search to learn more"],
+  "levelUp": "One sentence: how to take this workflow further (max 120 chars)"
 }
 
 Rules:
-- tools: 2-5 tools. Prefer database tools (use exact slug). Use isExternal:true + url for tools not in the database.
-- steps: 3-5 steps. Each step should reference a tool from the tools array by name.
-- tips: 2-4 actionable tips. Start each with a relevant emoji.
-- promptTemplates: 1-3 ready-to-use prompts. These should be REAL, practical prompts the user can paste into ChatGPT/Claude/etc. Make them specific to the goal, not generic.
-- pitfalls: 1-3 common mistakes. Start each with ⚠️ or relevant emoji.
-- Be enthusiastic but professional. Use emojis strategically, not excessively.
-- Keep the entire response practical and actionable — no fluff.`;
+- agentTeam: 2-4 agents. Each must map to a tool. Prefer database tools (use exact slug). Set slug to null for external tools.
+- scaffold: 3-5 phases. Each phase MUST name a concrete output — not vague advice.
+- starterPrompt: ONE prompt only. Specific, actionable, with [BRACKET] placeholders for personalization.
+- keywords: Industry terms, skills, or concepts relevant to this workflow.
+- levelUp: One power-user tip to graduate from this workflow to the next level.
+- difficulty: "beginner" for no-code/simple tools, "intermediate" for multi-tool chains, "advanced" for technical/API work.
+- Be practical, not generic. Name specific deliverables, quantities, and formats.
+
+Example output:
+{
+  "title": "AI Landing Page Sprint",
+  "emoji": "🚀",
+  "description": "Build a conversion-optimised landing page in under 2 hours using an AI agent team.",
+  "difficulty": "beginner",
+  "agentTeam": [
+    {"role": "Copywriter", "tool": "ChatGPT", "slug": "chatgpt", "brief": "Drafts headlines, hero copy & CTAs from your brief"},
+    {"role": "Designer", "tool": "Midjourney", "slug": "midjourney", "brief": "Generates hero images and visual assets"},
+    {"role": "Builder", "tool": "Framer", "slug": "framer", "brief": "Assembles the page from copy and assets"}
+  ],
+  "scaffold": [
+    {"phase": "Brief", "action": "Define audience persona, value prop, and one primary CTA", "tool": "ChatGPT", "output": "1-page creative brief"},
+    {"phase": "Copy", "action": "Generate 3 headline options and hero section", "tool": "ChatGPT", "output": "3 headline variants + 150-word hero"},
+    {"phase": "Visuals", "action": "Create hero image matching brand colours", "tool": "Midjourney", "output": "3 hero image options (16:9)"},
+    {"phase": "Build", "action": "Assemble page with copy, hero image, and CTA button", "tool": "Framer", "output": "Live landing page URL"}
+  ],
+  "starterPrompt": "Act as a senior conversion copywriter. I'm building a landing page for [PRODUCT]. My target audience is [AUDIENCE]. Write 3 headline options (max 10 words each) and a 150-word hero section. Tone: confident but approachable. Include one clear CTA.",
+  "keywords": ["conversion copywriting", "hero section", "A/B headline testing", "landing page UX"],
+  "levelUp": "Split-test your top 2 headlines with Google Optimize — even 100 visitors will show a clear winner."
+}`;
 
 // =============================================================================
 // Prompt Helpers

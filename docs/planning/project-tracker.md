@@ -6,8 +6,8 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-03-04
-**Status:** Phase 7 — LLM Usage Monitor Dashboard (Complete)
+**Last Updated:** 2026-03-05
+**Status:** Phase 8 — Workflow Advisor v2 (Implementation Complete)
 
 ---
 
@@ -63,6 +63,7 @@
 | 5 | LLM Focus Pivot & Summary Enhancement | Weeks 10-11 | ⏳ Not Started | Phase 4 |
 | 6 | AI Workflows Feature | Week 12 | ✅ Complete | Phase 4 |
 | 7 | LLM Usage Monitor Dashboard | Week 13 | ✅ Complete | Phase 6 |
+| 8 | Workflow Advisor v2 — Agent Team Blueprint | Week 14 | ✅ Complete | Phase 6 |
 
 **Status Legend:**
 - ⏳ Not Started
@@ -675,6 +676,39 @@ curl http://localhost:3000/api/health
 **Summary:** [What you did]
 **Issues:** [Any blockers or concerns]
 **Next:** [What happens next]
+
+### 2026-03-05 — Claude Opus — Branch: main (Session 7)
+**Status:** Complete
+**Summary:**
+- Implemented Workflow Advisor v2 — "Agent Team Blueprint" from design doc
+- New prompt: "AI workflow architect" with 1-shot example (~150 tokens), replaces generic advisor prompt
+- API route: maxTokens 4096→2048, 3-tier quality gate (schema + content heuristics + retry chain), new response shape
+- Frontend: Agent Team with role badges, Scaffold with phase→action→output, single Starter Prompt with [PLACEHOLDER] highlighting, Keywords as clickable chips, Level Up callout, difficulty badge
+- ~45% output token reduction with more actionable content
+**Files Modified (3):**
+- `src/lib/prompts.ts` — Replaced WORKFLOW_SUGGEST_ENHANCED_PROMPT
+- `src/app/api/workflows/suggest/route.ts` — New validation, retry logic, response shape
+- `src/components/workflows/AdvisorResult.tsx` — New types (AdvisorAgent, AdvisorScaffoldStep, AdvisorData) and UI
+**Issues:** None. WorkflowShowcase.tsx needed no changes (type name unchanged).
+**Next:** Deploy and test end-to-end with live LLM
+
+### 2026-03-05 — Claude Opus — Branch: main (Session 6)
+**Status:** Complete
+**Summary:**
+- Designed Workflow Advisor v2 — "Agent Team Blueprint" redesign
+- Researched 2026 marketing/AI workflow trends (multi-agent teams, role-based AI, content scaffolding)
+- New schema: agentTeam (roles) + scaffold (phases with concrete outputs) + starterPrompt (1 best prompt with [PLACEHOLDERS]) + keywords + levelUp + difficulty
+- Designed 3-tier quality gate system (schema validation → content heuristics → retry strategy)
+- ~45% output token reduction (790 → 432 tokens) with more actionable content
+- Input token analysis: ~1,173 tokens = 0.6% of MiniMax M2.5 context window, no risk
+- Added 1-shot example to prompt for quality anchoring
+**Files Created (1):**
+- `docs/plans/2026-03-05-workflow-advisor-v2-design.md`
+**Files Modified (2):**
+- `docs/planning/project-tracker.md` — Phase 8 status, agent log
+- `docs/planning/feature-update.md` — Added Phase 6: Workflow Advisor v2 section
+**Issues:** None.
+**Next:** Implementation — update prompts.ts, route.ts, AdvisorResult.tsx, WorkflowShowcase.tsx
 
 ### 2026-03-04 — Claude Opus — Branch: main (Session 5)
 **Status:** Complete
