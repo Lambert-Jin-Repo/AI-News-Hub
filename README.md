@@ -26,7 +26,7 @@
 | **Daily Digests** | Sectioned briefings (The Big Picture, Key Releases, Worth Watching) |
 | **Audio Briefings** | Google Cloud TTS podcast-style audio digests |
 | **Tools Directory** | Curated AI tools with link health monitoring |
-| **AI Workflows** | Curated multi-tool pipelines + AI-powered workflow suggestions |
+| **AI Workflows** | Curated multi-tool pipelines + AI Workflow Advisor v2 (agent team blueprints with quality gates) |
 | **Daily Word** | Daily AI/tech vocabulary with LLM-generated explanations |
 | **Admin Dashboard** | LLM usage monitoring with Recharts (calls, latency, tokens, fallbacks) |
 
@@ -163,7 +163,7 @@ src/
 ├── components/
 │   ├── ui/                      # Reusable UI components
 │   ├── cards/                   # NewsCard, ToolCard, DigestCard, WorkflowCard
-│   ├── workflows/               # WorkflowShowcase, WorkflowPipeline
+│   ├── workflows/               # WorkflowShowcase, AdvisorResult (v2 agent team blueprint)
 │   └── layout/                  # Header, Footer
 ├── lib/
 │   ├── llm-client.ts            # Central LLM abstraction (dual chain)

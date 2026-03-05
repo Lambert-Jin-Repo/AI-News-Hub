@@ -31,12 +31,14 @@
 |----------|-------------|
 | [2026-03-04-llm-dashboard-design.md](plans/2026-03-04-llm-dashboard-design.md) | LLM Usage Monitor Dashboard design |
 | [2026-03-04-llm-dashboard-implementation.md](plans/2026-03-04-llm-dashboard-implementation.md) | LLM Usage Monitor Dashboard implementation plan |
+| [2026-03-05-workflow-advisor-v2-design.md](plans/2026-03-05-workflow-advisor-v2-design.md) | Workflow Advisor v2 — Agent Team Blueprint design |
 | [2026-03-02-multi-paradigm-design-system.md](plans/2026-03-02-multi-paradigm-design-system.md) | Multi-paradigm design system |
 
 ## Learning Records
 
 | Document | Description |
 |----------|-------------|
+| [learning-record-2026-03-05.md](learning-record-2026-03-05.md) | Workflow Advisor v2 design + implementation |
 | [learning-record-2026-03-04.md](learning-record-2026-03-04.md) | MiniMax migration, split providers, LLM dashboard |
 | [learning-record-2026-03-02.md](learning-record-2026-03-02.md) | Multi-paradigm design system |
 | [learning-record-2026-02-25.md](learning-record-2026-02-25.md) | Initial MiniMax integration |
