@@ -6,8 +6,8 @@
 
 **Project:** AI News Hub  
 **PRD Version:** 2.2  
-**Last Updated:** 2026-03-05
-**Status:** Phase 8 — Workflow Advisor v2 (Implementation Complete)
+**Last Updated:** 2026-03-16
+**Status:** Phase 8 — Workflow Advisor v2 (Implementation Complete) | Hotfix: Summariser error handling
 
 ---
 
@@ -71,6 +71,24 @@
 - ✅ Complete
 - 🚫 Blocked
 - ⚠️ Needs Review
+
+---
+
+## Hotfix Log
+
+### 2026-03-16: Summariser silent DB update failure
+
+**Problem:** `summariser.ts` line 189 called `.update()` without checking `{ error }`. When the deployed Cloud Run environment had a stale/incorrect `SUPABASE_SECRET_KEY`, all article updates failed silently — the same 10 oldest pending articles were re-processed every CRON run, wasting LLM tokens. 248 articles accumulated as `pending` from March 8–16. The daily digest also stopped generating after March 11 because it requires completed articles within a 7-day lookback window (cascade effect).
+
+**Root cause:** `SUPABASE_SECRET_KEY` in GitHub Actions secrets likely differs from the actual project secret key. Local admin client works; deployed admin client cannot write to `articles` table.
+
+**Fix applied:**
+- `src/lib/summariser.ts` — added error checking on `.update()`, logs error code/message, tracks `updateFailures` count in return value
+- `src/app/api/jobs/summarise/route.ts` — surfaces `updateFailures` in CRON response; `success: false` when updates fail
+- Backlog of 249 pending articles processed locally (54 completed, 195 skipped low-relevance)
+- Today's digest (March 16) generated locally
+
+**Action required:** Update `SUPABASE_SECRET_KEY` in GitHub repo → Settings → Secrets → Actions with the current secret key from Supabase dashboard.
 
 ---
 

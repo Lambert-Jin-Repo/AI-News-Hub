@@ -23,9 +23,9 @@ export async function POST(request: Request) {
         const result = await summarisePendingArticles(10);
 
         return NextResponse.json({
-            success: true,
+            success: result.updateFailures === 0,
             ...result,
-            message: `Processed ${result.processed} articles: ${result.completed} completed, ${result.failed} failed`,
+            message: `Processed ${result.processed} articles: ${result.completed} completed, ${result.failed} failed, ${result.updateFailures} DB update failures`,
         });
     } catch (error) {
         const { logger } = await import('@/lib/logger');

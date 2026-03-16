@@ -1,7 +1,7 @@
 # Feature Update — Split LLM Providers & AI Automation
 
-> **Date:** 2026-02-25 (updated 2026-03-05)
-> **Status:** Phase 1 Complete, Phase 6 Implementation Complete (Workflow Advisor v2)
+> **Date:** 2026-02-25 (updated 2026-03-16)
+> **Status:** Phase 1 Complete, Phase 6 Implementation Complete (Workflow Advisor v2), Hotfix: Summariser error handling
 > **Goal:** Use Gemini 2.5 Flash as default LLM, MiniMax M2.5 for workflow generation only, keep Google Cloud TTS, and add AI-powered automation features.
 
 ---
@@ -89,6 +89,9 @@ If Gemini is permanently discontinued:
 | `.github/workflows/deploy.yml` | Added `GEMINI_MODEL=gemini-2.5-flash` to Cloud Run env vars | ✅ Done (2026-03-04) |
 | `src/lib/__tests__/llm-client.test.ts` | Updated for dual chain tests (6 tests) | ✅ Done (2026-03-04) |
 | `src/lib/constants.ts` | Remove `MAX_ARTICLES_PER_DAY` cap (no longer cost-constrained) | ✅ Done |
+
+| `src/lib/summariser.ts` | **Hotfix:** Added error checking on `.update()` — was silently failing, causing 248-article backlog (2026-03-16) | ✅ Done (2026-03-16) |
+| `src/app/api/jobs/summarise/route.ts` | **Hotfix:** Surface `updateFailures` count in CRON response, `success: false` when DB writes fail | ✅ Done (2026-03-16) |
 
 ### No Changes Required (automatic via default provider)
 

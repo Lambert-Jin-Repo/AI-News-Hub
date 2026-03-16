@@ -150,6 +150,7 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
     processed: number;
     completed: number;
     failed: number;
+    updateFailures: number;
     results: SummarisationResult[];
 }> {
     const supabase = getAdminClient();
@@ -167,7 +168,7 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
     }
 
     if (!articles || articles.length === 0) {
-        return { processed: 0, completed: 0, failed: 0, results: [] };
+        return { processed: 0, completed: 0, failed: 0, updateFailures: 0, results: [] };
     }
 
     // Rate-limited concurrency (3 at a time)
@@ -177,6 +178,7 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
     );
 
     // Update database with results
+    let updateFailures = 0;
     for (const result of results) {
         const updateData: Record<string, unknown> = {
             summary_status: result.status,
@@ -186,7 +188,21 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
         if (result.category) updateData.category = result.category;
         if (result.metadata) updateData.ai_metadata = result.metadata;
 
-        await supabase.from('articles').update(updateData).eq('id', result.id);
+        const { error: updateError } = await supabase
+            .from('articles')
+            .update(updateData)
+            .eq('id', result.id);
+
+        if (updateError) {
+            updateFailures++;
+            console.error(
+                `[summariser] Failed to update article ${result.id}: ${updateError.message} (code: ${updateError.code})`
+            );
+        }
+    }
+
+    if (updateFailures > 0) {
+        console.error(`[summariser] ${updateFailures}/${results.length} DB updates failed`);
     }
 
     const completed = results.filter((r) => r.status === 'completed').length;
@@ -196,6 +212,7 @@ export async function summarisePendingArticles(batchSize = 10): Promise<{
         processed: results.length,
         completed,
         failed,
+        updateFailures,
         results,
     };
 }
